@@ -82,7 +82,7 @@ void k_truss::init_Adj()
 	{
 		file_in >> u >> v;
 		if (u == v) continue; // same does not matter
-		//计算能否找到adj
+		//计算能否找到adj 避免重复计算 只有相同的边才有
 		if (Adj[u].find(v) == Adj[u].end())
 		{
 			Adj[u][v] = 0;
@@ -110,6 +110,7 @@ void k_truss::intersect(const vector<int>& a, const vector<int>& b, vector<int>&
 	unsigned j = 0;
 	for (unsigned i = 0; i < a.size(); ++i)
 	{
+		//算共同边须从小到大 避免重复计算
 		while (j<b.size() && b[j]>a[i])
 			++j;
 		if (j >= b.size())
@@ -122,6 +123,7 @@ void k_truss::intersect(const vector<int>& a, const vector<int>& b, vector<int>&
 void k_truss::countTriangles()
 {
 	bool temp1;
+	//类型邻接表的存放矩阵 
 	A.resize(n); // Initialize A
 
 	for (int i = 0; i < n; ++i)
@@ -140,17 +142,19 @@ void k_truss::countTriangles()
 
 		for (auto it = Adj[v].begin(); it != Adj[v].end(); ++it)  // 遍历每一个顶点For each vertex
 		{
-
+			// 遍历每一个边的节点
 			int u = it->first;
 			// 暂时去掉 temp1 = !compVertex(u, v);
 			// 只计算度从小到大的俩个点 
 			if (!compVertex(u, v))
 				continue;
-
+			// 寻找共同的边
 			vector<int> common;
+			// 寻找相交的点
 			intersect(A[u], A[v], common);
 			for (unsigned i = 0; i < common.size(); ++i)
 			{
+				//找到共同区域添加三角形
 				int w = mapto[common[i]];
 				++nDeltas;
 				updateSupport(u, v, 1);
@@ -174,13 +178,14 @@ void k_truss::binSort()
 		for (auto it = tadj.begin(); it != tadj.end(); ++it)
 		{
 			int v = it->first;
+			//避免重复
 			if (!compVertex(u, v))
 				continue;
 
 			int sup = it->second;
 			if (sup == 0)
 			{
-				// Removing zeros, do not matter 如果邻接矩阵中为0 去除三角形
+				// Removing zeros, do not matter 如果邻接矩阵中为0 说明没有只有2truss
 				printClass(u, v, 2);
 				removeEdge(u, v);
 				continue;
@@ -193,6 +198,7 @@ void k_truss::binSort()
 	m = mp;
 	++nBins;
 	int count = 0;
+	// 计算binSize叠加
 	for (int i = 0; i < nBins; ++i)
 	{
 		int binsize = bin[i];
@@ -202,7 +208,7 @@ void k_truss::binSort()
 	pos.clear(); pos.resize(n);
 	for (int i = 0; i < n; ++i)
 		pos[i].clear();
-
+	//出现三角形的次数
 	binEdge.resize(m);
 	for (int u = 0; u < n; ++u)
 	{

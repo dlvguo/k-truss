@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
 	string str;
 	cin >> str;
 	argc = 3;
-	string path = "H:/竞赛相关/2020ccf-kmax/k-truss/k-truss/data/p2p-Gnutella31.txt";
+	string path = "H:/竞赛相关/2020ccf-kmax/k-truss/k-truss/data/test.txt";
 	if (argc == 3)
 	{
 		//	if (string(argv[1]) == "-b")

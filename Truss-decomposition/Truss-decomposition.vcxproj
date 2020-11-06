@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{0b33a0b3-2120-4ab9-88de-a2d03a1730b1}</ProjectGuid>
-    <RootNamespace>ktruss</RootNamespace>
+    <ProjectGuid>{b0078699-0925-4571-985d-41c0f7c6beb4}</ProjectGuid>
+    <RootNamespace>Trussdecomposition</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -139,12 +139,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="k_truss.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="pkt.cpp" />
+    <ClInclude Include="Graph.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="k_truss.h" />
+    <ClCompile Include="Graph.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
