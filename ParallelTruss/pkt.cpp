@@ -37,6 +37,7 @@ typedef struct {
 	eid_t* eid;
 } graph_t;
 
+//释放图 
 void free_graph(graph_t* g) {
 	if (g->adj != NULL)
 		free(g->adj);
@@ -125,18 +126,24 @@ int load_graph_from_file(char* filename, graph_t* g) {
 	long m = 0;
 	vid_t u, v;
 	vid_t _max = 0;
+
+	//求到最大的max
 	while (fscanf(infp, "%u %u\n", &u, &v) != EOF) {
 		_max = max(_max, max(u, v));
 	}
 
 	fclose(infp);
+
 	//计算max边长度
 	printf("%d_max\n", _max);
 	printf("N: %ld, M: %ld \n", g->n, g->m);
+
+
 	infp = fopen(filename, "r");
 	fscanf(infp, "%ld %ld\n", &(g->n), &(g->m));
 	g->n = _max + 1;
-	// Allocate space
+
+	// Allocate space 分配空间
 	g->num_edges = (eid_t*)malloc((g->n + 1) * sizeof(eid_t));
 	assert(g->num_edges != NULL);
 
@@ -153,6 +160,7 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 	fclose(infp);
 
+	// 避免边计算错误
 	if (m != g->m) {
 		printf("Reading error: file does not contain %ld edges.\n", g->m);
 		free(g->num_edges);
@@ -165,6 +173,10 @@ int load_graph_from_file(char* filename, graph_t* g) {
 	assert(temp_num_edges != NULL);
 
 	temp_num_edges[0] = 0;
+
+	for (long i = 0; i < g->n + 1; i++) {
+		g->num_edges[i] /= 2;
+	}
 
 	for (long i = 0; i < g->n; i++) {
 		m += g->num_edges[i];
@@ -198,7 +210,7 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 	//Read N and M
 	fscanf(infp, "%ld %ld\n", &(g->n), &m);
-
+	g->n = _max + 1;
 	//Read the edges
 	while (fscanf(infp, "%u %u\n", &u, &v) != EOF) {
 		g->adj[temp_num_edges[u]] = v;
@@ -206,6 +218,11 @@ int load_graph_from_file(char* filename, graph_t* g) {
 		g->adj[temp_num_edges[v]] = u;
 		temp_num_edges[v]++;
 	}
+
+	/*for (long i = 0; i < g->n + 1; i++) {
+		g->adj[i] /= 2;
+	}*/
+
 
 	fclose(infp);
 
@@ -216,6 +233,7 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 	fprintf(stdout, "Reading input file took time: %.2lf sec \n", timer() - t0);
 	free(temp_num_edges);
+	cout << "ok" << endl;
 	return 0;
 }
 
@@ -909,14 +927,14 @@ void PKT_intersection(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 		if (tid == 0) {
 			printf("Tri time: %9.3lf \nScan Time: %9.3lf \nProc Time: %9.3lf \n", triTime, scanTime, procTime);
 			printf("PKT-intersection-Time: %9.3lf\n", triTime + scanTime + procTime);
-		}
+	}
 #endif
 
 		free(X);
 
-	}  //End of parallel region
+}  //End of parallel region
 
-		//Free memory
+	//Free memory
 	free(next);
 	free(InNext);
 	free(curr);
@@ -1585,14 +1603,14 @@ void PKT_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 		if (tid == 0) {
 			printf("Tri time: %9.3lf \nScan Time: %9.3lf \nProc Time: %9.3lf \n", triTime, scanTime, procTime);
 			printf("PKT-marking-Time: %9.3lf\n\n\n", triTime + scanTime + procTime);
-		}
+	}
 #endif
 
 		free(X);
 
-	}  //End of parallel region
+}  //End of parallel region
 
-		//Free memory
+	//Free memory
 	free(next);
 	free(InNext);
 	free(curr);
@@ -1639,7 +1657,7 @@ void Ros(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 #if TIME_RESULTS
 		if (tid == 0) {
 			startTime = timer();
-		}
+	}
 #endif
 
 		//Compute the support of each edge in parallel
@@ -1684,7 +1702,7 @@ void Ros(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 #if TIME_RESULTS
 		if (tid == 0) {
 			supTime = timer() - startTime;
-		}
+}
 #endif
 
 		//free X
@@ -2058,7 +2076,7 @@ void Ros_serial(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
  * J.Wang and J. Cheng, "Truss decomposition in massive networks", Proc. VLDB Endow., vol 5, no 9, pp.
  * 812-823, May 2012.
  *
- * */
+ **/
 void WC(graph_t* g, int* EdgeSupport, MapType& edgeToIdMap, Edge* edgeIdToEdge) {
 	long m = g->m;
 

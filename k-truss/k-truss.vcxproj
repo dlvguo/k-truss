@@ -141,7 +141,6 @@
   <ItemGroup>
     <ClCompile Include="k_truss.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="pkt.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="k_truss.h" />
