@@ -233,7 +233,7 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 	fprintf(stdout, "Reading input file took time: %.2lf sec \n", timer() - t0);
 	free(temp_num_edges);
-	cout << "ok" << endl;
+	cout << m << endl;
 	return 0;
 }
 
@@ -927,14 +927,14 @@ void PKT_intersection(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 		if (tid == 0) {
 			printf("Tri time: %9.3lf \nScan Time: %9.3lf \nProc Time: %9.3lf \n", triTime, scanTime, procTime);
 			printf("PKT-intersection-Time: %9.3lf\n", triTime + scanTime + procTime);
-	}
+		}
 #endif
 
 		free(X);
 
-}  //End of parallel region
+	}  //End of parallel region
 
-	//Free memory
+		//Free memory
 	free(next);
 	free(InNext);
 	free(curr);
@@ -1603,14 +1603,14 @@ void PKT_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 		if (tid == 0) {
 			printf("Tri time: %9.3lf \nScan Time: %9.3lf \nProc Time: %9.3lf \n", triTime, scanTime, procTime);
 			printf("PKT-marking-Time: %9.3lf\n\n\n", triTime + scanTime + procTime);
-	}
+		}
 #endif
 
 		free(X);
 
-}  //End of parallel region
+	}  //End of parallel region
 
-	//Free memory
+		//Free memory
 	free(next);
 	free(InNext);
 	free(curr);
@@ -1657,7 +1657,7 @@ void Ros(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 #if TIME_RESULTS
 		if (tid == 0) {
 			startTime = timer();
-	}
+		}
 #endif
 
 		//Compute the support of each edge in parallel
@@ -1702,7 +1702,7 @@ void Ros(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 #if TIME_RESULTS
 		if (tid == 0) {
 			supTime = timer() - startTime;
-}
+		}
 #endif
 
 		//free X
