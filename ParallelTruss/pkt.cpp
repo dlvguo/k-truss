@@ -114,8 +114,13 @@ int vid_compare(const void* a, const void* b) {
 	return (*(vid_t*)a - *(vid_t*)b);
 }
 
+long figuremax(long a, long b) {
+	return a < b ? b : a;
+}
 
 int load_graph_from_file(char* filename, graph_t* g) {
+	double t0 = timer();
+
 
 	FILE* infp = fopen(filename, "r");
 	if (infp == NULL) {
@@ -123,19 +128,31 @@ int load_graph_from_file(char* filename, graph_t* g) {
 		exit(1);
 	}
 
+	vid_t u, v, t;
+	long m = 0, _max = 0;
 	fprintf(stdout, "Reading input file: %s\n", filename);
 
-	double t0 = timer();
+	//计算最大边和最大顶点
+	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
+		m++;
+		_max = figuremax(_max, figuremax(u, v));
+	}
+	fclose(infp);
 
-	//Read N and M
-	fscanf(infp, "%ld %ld\n", &(g->n), &(g->m));
-	printf("N: %ld, M: %ld \n", g->n, g->m);
+	g->n = _max + 1;
+	g->m = m;
+	cout << "N:" << g->n << " E:" << g->m << endl;
 
-	long m = 0;
 
-	//Allocate space
+
+	//初始化边
 	g->num_edges = (eid_t*)malloc((g->n + 1) * sizeof(eid_t));
 	assert(g->num_edges != NULL);
+#pragma omp parallel for 
+	for (long i = 0; i < g->n + 1; i++) {
+		g->num_edges[i] = 0;
+	}
+
 
 	Adj.resize(g->n + 1);
 #pragma omp parallel for 
@@ -143,14 +160,10 @@ int load_graph_from_file(char* filename, graph_t* g) {
 		Adj[i].clear();
 	}
 
-#pragma omp parallel for 
-	for (long i = 0; i < g->n + 1; i++) {
-		g->num_edges[i] = 0;
-	}
 
-	vid_t u, v, t;
+	infp = fopen(filename, "r");
+	//读边
 	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
-		m++;
 		//避免重复			
 		if (Adj[u].find(v) == Adj[u].end()) {
 			Adj[u][v] = 0;
@@ -176,6 +189,7 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 	temp_num_edges[0] = 0;
 
+	//可优化
 	for (long i = 0; i < g->n; i++) {
 		m += g->num_edges[i];
 		temp_num_edges[i + 1] = m;
@@ -206,8 +220,6 @@ int load_graph_from_file(char* filename, graph_t* g) {
 		exit(1);
 	}
 
-	//Read N and M
-	fscanf(infp, "%ld %ld\n", &(g->n), &m);
 #pragma omp parallel for 
 	for (long i = 0; i < g->n + 1; i++) {
 		Adj[i].clear();
@@ -2371,6 +2383,8 @@ int main(int argc, char* argv[]) {
 	//load the graph from file
 	load_graph_from_file(path, &g);
 
+	double t0 = timer();
+
 	/************   Compute k - truss *****************************************/
 	//edge list array
 	Edge* edgeIdToEdge = (Edge*)malloc((g.m / 2) * sizeof(Edge));
@@ -2390,6 +2404,8 @@ int main(int argc, char* argv[]) {
 	PKT_intersection(&g, EdgeSupport, edgeIdToEdge);
 
 	display_stats(EdgeSupport, g.m / 2);
+
+	fprintf(stdout, "Figure took time: %.2lf sec \n", timer() - t0);
 
 	//Free memory
 	free_graph(&g);
