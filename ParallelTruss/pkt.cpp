@@ -14,16 +14,21 @@
 #include <stdlib.h>
 #include <omp.h> 
 #include<time.h>
+#include <sys/time.h>
+
 #include <functional>
 #include <iostream>
 #include <unordered_map>
 #include <climits>
 #include<map>
+#include<vector>
 
 using namespace std;
 
 //Global variables to store num of threads 
 int NUM_THREADS = 1;
+//Hash±ß
+vector<map<int, int>> Adj;
 
 typedef unsigned int vid_t;
 typedef unsigned int eid_t;
@@ -86,10 +91,10 @@ struct edgeEqual {
 typedef unordered_map<Edge, long, EdgeHasher, edgeEqual> MapType;
 
 static double timer() {
-	//struct timeval tp;
-	//gettimeofday(&tp, NULL);
-	//return ((double)(tp.tv_sec) + tp.tv_usec * 1e-6);
-	return 0;
+	struct timeval tp;
+	gettimeofday(&tp, NULL);
+	return ((double)(tp.tv_sec) + tp.tv_usec * 1e-6);
+	// return 0;
 }
 
 void read_env() {
@@ -132,6 +137,12 @@ int load_graph_from_file(char* filename, graph_t* g) {
 	g->num_edges = (eid_t*)malloc((g->n + 1) * sizeof(eid_t));
 	assert(g->num_edges != NULL);
 
+	Adj.resize(g->n + 1);
+#pragma omp parallel for 
+	for (long i = 0; i < g->n + 1; i++) {
+		Adj[i].clear();
+	}
+
 #pragma omp parallel for 
 	for (long i = 0; i < g->n + 1; i++) {
 		g->num_edges[i] = 0;
@@ -140,8 +151,13 @@ int load_graph_from_file(char* filename, graph_t* g) {
 	vid_t u, v, t;
 	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
 		m++;
-		g->num_edges[u]++;
-		g->num_edges[v]++;
+		//±ÜÃâÖØ¸´			
+		if (Adj[u].find(v) == Adj[u].end()) {
+			Adj[u][v] = 0;
+			Adj[v][u] = 0;
+			g->num_edges[u]++;
+			g->num_edges[v]++;
+		}
 	}
 
 	fclose(infp);
@@ -192,13 +208,20 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 	//Read N and M
 	fscanf(infp, "%ld %ld\n", &(g->n), &m);
-
+#pragma omp parallel for 
+	for (long i = 0; i < g->n + 1; i++) {
+		Adj[i].clear();
+	}
 	//Read the edges
 	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
-		g->adj[temp_num_edges[u]] = v;
-		temp_num_edges[u]++;
-		g->adj[temp_num_edges[v]] = u;
-		temp_num_edges[v]++;
+		if (Adj[u].find(v) == Adj[u].end()) {
+			Adj[u][v] = 0;
+			Adj[v][u] = 0;
+			g->adj[temp_num_edges[u]] = v;
+			temp_num_edges[u]++;
+			g->adj[temp_num_edges[v]] = u;
+			temp_num_edges[v]++;
+		}
 	}
 
 	fclose(infp);
