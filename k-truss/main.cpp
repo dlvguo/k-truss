@@ -113,7 +113,6 @@ int main(int argc, char* argv[])
 			// TOP-DOWN TRUSS DECOMPOSITION
 			cout << "Calculating the top down truss decomposition: " << endl;
 			//string path = argv[2];
-
 			clock_t begin = clock();
 			k_truss truss(path);
 			string name = truss.top_down_decomp();
@@ -187,7 +186,6 @@ int main(int argc, char* argv[])
 
 string decompose_graph_p1(string filename)
 {
-
 	struct Edge
 	{
 		int u, v;

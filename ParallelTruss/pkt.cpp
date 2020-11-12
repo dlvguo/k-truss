@@ -18,7 +18,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <climits>
-
+#include<map>
 
 using namespace std;
 
@@ -32,10 +32,11 @@ typedef struct {
 	long n;
 	long m;
 
-	vid_t* adj;
+	vid_t* adj;// 
 	eid_t* num_edges;
 	eid_t* eid;
 } graph_t;
+
 
 //释放图 
 void free_graph(graph_t* g) {
@@ -123,27 +124,11 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 	//Read N and M
 	fscanf(infp, "%ld %ld\n", &(g->n), &(g->m));
-	long m = 0;
-	vid_t u, v;
-	vid_t _max = 0;
-
-	//求到最大的max
-	while (fscanf(infp, "%u %u\n", &u, &v) != EOF) {
-		_max = max(_max, max(u, v));
-	}
-
-	fclose(infp);
-
-	//计算max边长度
-	printf("%d_max\n", _max);
 	printf("N: %ld, M: %ld \n", g->n, g->m);
 
+	long m = 0;
 
-	infp = fopen(filename, "r");
-	fscanf(infp, "%ld %ld\n", &(g->n), &(g->m));
-	g->n = _max + 1;
-
-	// Allocate space 分配空间
+	//Allocate space
 	g->num_edges = (eid_t*)malloc((g->n + 1) * sizeof(eid_t));
 	assert(g->num_edges != NULL);
 
@@ -152,7 +137,8 @@ int load_graph_from_file(char* filename, graph_t* g) {
 		g->num_edges[i] = 0;
 	}
 
-	while (fscanf(infp, "%u %u\n", &u, &v) != EOF) {
+	vid_t u, v, t;
+	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
 		m++;
 		g->num_edges[u]++;
 		g->num_edges[v]++;
@@ -160,7 +146,6 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 	fclose(infp);
 
-	// 避免边计算错误
 	if (m != g->m) {
 		printf("Reading error: file does not contain %ld edges.\n", g->m);
 		free(g->num_edges);
@@ -169,14 +154,11 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 	m = 0;
 
+	//需要n+1个点
 	eid_t* temp_num_edges = (eid_t*)malloc((g->n + 1) * sizeof(eid_t));
 	assert(temp_num_edges != NULL);
 
 	temp_num_edges[0] = 0;
-
-	for (long i = 0; i < g->n + 1; i++) {
-		g->num_edges[i] /= 2;
-	}
 
 	for (long i = 0; i < g->n; i++) {
 		m += g->num_edges[i];
@@ -210,19 +192,14 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 	//Read N and M
 	fscanf(infp, "%ld %ld\n", &(g->n), &m);
-	g->n = _max + 1;
+
 	//Read the edges
-	while (fscanf(infp, "%u %u\n", &u, &v) != EOF) {
+	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
 		g->adj[temp_num_edges[u]] = v;
 		temp_num_edges[u]++;
 		g->adj[temp_num_edges[v]] = u;
 		temp_num_edges[v]++;
 	}
-
-	/*for (long i = 0; i < g->n + 1; i++) {
-		g->adj[i] /= 2;
-	}*/
-
 
 	fclose(infp);
 
@@ -233,7 +210,6 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 	fprintf(stdout, "Reading input file took time: %.2lf sec \n", timer() - t0);
 	free(temp_num_edges);
-	cout << m << endl;
 	return 0;
 }
 
