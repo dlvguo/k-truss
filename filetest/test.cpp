@@ -44,6 +44,7 @@ static double timer() {
 	return 0;
 }
 
+//测试版本带边缘过滤
 int load_graph_from_file(char* filename, graph_t* g) {
 
 	FILE* infp = fopen(filename, "r");
@@ -81,7 +82,6 @@ int load_graph_from_file(char* filename, graph_t* g) {
 		Adj[i].clear();
 	}
 
-	map<int, int>::iterator it1, it2;
 	while (fscanf(infp, "%u %u \n", &u, &v) != EOF) {
 		m++;
 		//避免重复			
@@ -170,18 +170,27 @@ int load_graph_from_file(char* filename, graph_t* g) {
 	for (long i = 0; i < g->n + 1; i++) {
 		Adj[i].clear();
 	}
+
+	cout << "Double-------" << endl;
+	cout << "m-------" << g->m << endl;
+	cout << "edges-------" << endl;
+
+	for (int i = 0; i < g->n + 1; i++)
+	{
+		cout << g->num_edges[i] << endl;
+	}
+	cout << "N-------" << endl;
+	for (int i = 0; i < g->m; i++)
+	{
+		cout << g->adj[i] << endl;
+	}
 	return 0;
 }
 
-
-int load_graph_from_file2(char* filename, graph_t* g) {
+// 计算原始的读取方式
+int load_graph_from_fileori(char* filename, graph_t* g) {
 
 	FILE* infp = fopen(filename, "r");
-	long m = 0;
-	vid_t u, v, t;
-
-#pragma endregion
-
 	if (infp == NULL) {
 		fprintf(stderr, "Error: could not open inputh file: %s.\n Exiting ...\n", filename);
 		exit(1);
@@ -195,6 +204,7 @@ int load_graph_from_file2(char* filename, graph_t* g) {
 	fscanf(infp, "%ld %ld\n", &(g->n), &(g->m));
 	printf("N: %ld, M: %ld \n", g->n, g->m);
 
+	long m = 0;
 
 	//Allocate space
 	g->num_edges = (eid_t*)malloc((g->n + 1) * sizeof(eid_t));
@@ -205,23 +215,13 @@ int load_graph_from_file2(char* filename, graph_t* g) {
 		g->num_edges[i] = 0;
 	}
 
-	Adj.resize(g->n + 1);
-#pragma omp parallel for 
-	for (long i = 0; i < g->n + 1; i++) {
-		Adj[i].clear();
+	vid_t u, v;
+	while (fscanf(infp, "%u %u\n", &u, &v) != EOF) {
+		m++;
+		g->num_edges[u]++;
+		g->num_edges[v]++;
 	}
 
-	map<int, int>::iterator it1, it2;
-	while (fscanf(infp, "%u %u \n", &u, &v) != EOF) {
-		m++;
-		//避免重复			
-		if (Adj[u].find(v) == Adj[u].end()) {
-			Adj[u][v] = 0;
-			Adj[v][u] = 0;
-			g->num_edges[u]++;
-			g->num_edges[v]++;
-		}
-	}
 	fclose(infp);
 
 	if (m != g->m) {
@@ -232,7 +232,6 @@ int load_graph_from_file2(char* filename, graph_t* g) {
 
 	m = 0;
 
-	//需要n+1个点
 	eid_t* temp_num_edges = (eid_t*)malloc((g->n + 1) * sizeof(eid_t));
 	assert(temp_num_edges != NULL);
 
@@ -271,20 +270,12 @@ int load_graph_from_file2(char* filename, graph_t* g) {
 	//Read N and M
 	fscanf(infp, "%ld %ld\n", &(g->n), &m);
 
-#pragma omp parallel for 
-	for (long i = 0; i < g->n + 1; i++) {
-		Adj[i].clear();
-	}
 	//Read the edges
 	while (fscanf(infp, "%u %u\n", &u, &v) != EOF) {
-		if (Adj[u].find(v) == Adj[u].end()) {
-			Adj[u][v] = 0;
-			Adj[v][u] = 0;
-			g->adj[temp_num_edges[u]] = v;
-			temp_num_edges[u]++;
-			g->adj[temp_num_edges[v]] = u;
-			temp_num_edges[v]++;
-		}
+		g->adj[temp_num_edges[u]] = v;
+		temp_num_edges[u]++;
+		g->adj[temp_num_edges[v]] = u;
+		temp_num_edges[v]++;
 	}
 
 	fclose(infp);
@@ -295,11 +286,20 @@ int load_graph_from_file2(char* filename, graph_t* g) {
 	}
 
 	fprintf(stdout, "Reading input file took time: %.2lf sec \n", timer() - t0);
-	free(temp_num_edges);
-#pragma omp parallel for 
-	for (long i = 0; i < g->n + 1; i++) {
-		Adj[i].clear();
+	cout << "Ori-------" << endl;
+	cout << "m-------" << g->m << endl;
+	cout << "edges-------" << endl;
+
+	for (int i = 0; i < g->n + 1; i++)
+	{
+		cout << g->num_edges[i] << endl;
 	}
+	cout << "N-------" << endl;
+	for (int i = 0; i < g->m; i++)
+	{
+		cout << g->adj[i] << endl;
+	}
+	free(temp_num_edges);
 	return 0;
 }
 
@@ -343,27 +343,15 @@ void FigureEdgeAndNode3(char* filename) {
 int main() {
 
 
-	char path[100] = "H:/竞赛相关/2020ccf-kmax/k-truss/filetest/example.txt";
+	char path[100] = "H:/竞赛相关/2020ccf-kmax/k-truss/filetest/example1.txt";
+	char pathori[100] = "H:/竞赛相关/2020ccf-kmax/k-truss/filetest/example1ori.txt";
+	
 	//char path[100] = "H:/竞赛相关/2020ccf-kmax/k-truss/k-truss/data/p2p-Gnutella31.txt";
-	char path2[102] = "H:/竞赛相关/2020ccf-kmax/ktruss-data/s18.e16.rmat.edgelist.tsv";
+	// Max Node:3774768 Edges:33037894
+	char path2[102] = "H:/竞赛相关/2020ccf-kmax/ktruss-data/cit-Patents.txt";
+	FigureEdgeAndNode3(path2);
 	graph_t g;
 	load_graph_from_file(path, &g);
-	FILE* fp;
-	fp = fopen("H:/竞赛相关/2020ccf-kmax/ktruss-data/s18.e16.rmat.edgelist.tsv", "r");
-	int a, b, c;
-	int ans = 0;
-	while (fscanf(fp, "%d%d%d", &a, &b, &c) != EOF)
-	{
-		//cout << a << "-" << b << "-" << c << endl;
-		ans++;
-	}
-	fclose(fp);
-	cout << ans << endl;
-
-	//for (int i = 0; i < 1000; i++)
-	//{
-	//	fscanf(fp, "%d%d%d", &a, &b, &c);
-	//	cout << a << "-" << b << "-" << c << endl;
-	//}
+	load_graph_from_fileori(pathori, &g);
 	system("pause");
 }
