@@ -20,7 +20,6 @@
 #include <iostream>
 #include <unordered_map>
 #include <climits>
-#include<map>
 #include<vector>
 
 using namespace std;
@@ -90,12 +89,12 @@ struct edgeEqual {
 
 typedef unordered_map<Edge, long, EdgeHasher, edgeEqual> MapType;
 
-static double timer() {
-	struct timeval tp;
-	gettimeofday(&tp, NULL);
-	return ((double)(tp.tv_sec) + tp.tv_usec * 1e-6);
-	// return 0;
-}
+//static double timer() {
+//	struct timeval tp;
+//	gettimeofday(&tp, NULL);
+//	return ((double)(tp.tv_sec) + tp.tv_usec * 1e-6);
+//	// return 0;
+//}
 
 void read_env() {
 
@@ -105,8 +104,8 @@ void read_env() {
 		NUM_THREADS = omp_get_num_threads();
 	}
 
-	printf("NUM_PROCS:     %d \n", omp_get_num_procs());
-	printf("NUM_THREADS:   %d \n", NUM_THREADS);
+	/*printf("NUM_PROCS:     %d \n", omp_get_num_procs());
+	printf("NUM_THREADS:   %d \n", NUM_THREADS);*/
 }
 
 /*********************** READ INPUT FILE  ************************************************************/
@@ -120,7 +119,7 @@ long figuremax(long a, long b) {
 }
 
 int load_graph_from_file(char* filename, graph_t* g) {
-	double t0 = timer();
+	// double t0 = timer();
 
 
 	FILE* infp = fopen(filename, "r");
@@ -131,7 +130,7 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 	vid_t u, v, t;
 	long m = 0, _max = 0;
-	fprintf(stdout, "Reading input file: %s\n", filename);
+	// fprintf(stdout, "Reading input file: %s\n", filename);
 
 	//计算最大边和最大顶点
 	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
@@ -142,7 +141,7 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 	g->n = _max + 1;
 	g->m = m;
-	cout << "N:" << g->n << " E:" << g->m << endl;
+	// cout << "N:" << g->n << " E:" << g->m << endl;
 
 
 
@@ -244,7 +243,7 @@ int load_graph_from_file(char* filename, graph_t* g) {
 		qsort(g->adj + g->num_edges[i], g->num_edges[i + 1] - g->num_edges[i], sizeof(vid_t), vid_compare);
 	}
 
-	fprintf(stdout, "Reading input file took time: %.2lf sec \n", timer() - t0);
+	// fprintf(stdout, "Reading input file took time: %.2lf sec \n", timer() - t0);
 	free(temp_num_edges);
 	return 0;
 }
@@ -2262,14 +2261,15 @@ void display_stats(int* EdgeSupport, long numEdges) {
 
 int main(int argc, char* argv[]) {
 
-	fprintf(stderr, "Start Successfully \n");
+	// fprintf(stderr, "Start Successfully \n");
 
 	if (argc < 2) {
 		fprintf(stderr, "%s <Graph file>\n", argv[0]);
 		exit(1);
 	}
-	printf("FileFullName-%s\n", argv[1]);
+	// printf("FileFullName-%s\n", argv[1]);
 	//char path[50] = "./example.txt";
+	// 读取线程数
 	read_env();
 
 	graph_t g;
@@ -2278,7 +2278,7 @@ int main(int argc, char* argv[]) {
 	load_graph_from_file(argv[1], &g);
 
 	//计时
-	double t0 = timer();
+	// double t0 = timer();
 
 	/************   Compute k - truss *****************************************/
 	//edge list array
@@ -2298,9 +2298,10 @@ int main(int argc, char* argv[]) {
 
 	PKT_intersection(&g, EdgeSupport, edgeIdToEdge);
 
+	// 输出结果
 	display_stats(EdgeSupport, g.m / 2);
 
-	fprintf(stdout, "Figure took time: %.2lf sec \n", timer() - t0);
+	// fprintf(stdout, "Figure took time: %.2lf sec \n", timer() - t0);
 
 	//Free memory
 	free_graph(&g);
