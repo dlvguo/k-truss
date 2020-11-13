@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pkt.cpp">
+    <ClCompile Include="ktruss.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
