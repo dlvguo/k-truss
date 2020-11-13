@@ -1,0 +1,20 @@
+s18.e16.rmat.edgelist.tsv
+N:262145 E:7604036
+Reading input file took time: 24.55 sec 
+kmax = 164, Edges in kmax-truss = 225529.
+Figure took time: 21.96 sec 
+
+s19.e16.rmat.edgelist.tsv
+N:524289 E:15459034
+Reading input file took time: 52.48 sec 
+kmax = 223, Edges in kmax-truss = 334934.
+Figure took time: 59.96 sec 
+
+cit-Patents.tsv
+N:3774769 E:33037894
+Reading input file took time: 120.15 sec 
+kmax = 36, Edges in kmax-truss = 2625.
+Figure took time: 8.19 sec 
+
+
+

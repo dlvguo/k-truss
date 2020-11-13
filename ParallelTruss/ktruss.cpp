@@ -114,6 +114,7 @@ int vid_compare(const void* a, const void* b) {
 	return (*(vid_t*)a - *(vid_t*)b);
 }
 
+//计算 最大值
 long figuremax(long a, long b) {
 	return a < b ? b : a;
 }
@@ -155,10 +156,10 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 
 	Adj.resize(g->n + 1);
-#pragma omp parallel for 
-	for (long i = 0; i < g->n + 1; i++) {
-		Adj[i].clear();
-	}
+	//#pragma omp parallel for 
+	//	for (long i = 0; i < g->n + 1; i++) {
+	//		Adj[i].clear();
+	//	}
 
 
 	infp = fopen(filename, "r");
@@ -294,6 +295,7 @@ void getEidAndEdgeList(graph_t* g, Edge* idToEdge) {
 
 
 /*******************************************************************************************************/
+// Pkt 扫描
 void PKT_scan(long numEdges, int* EdgeSupport, int level, eid_t* curr, long* currTail, bool* InCurr) {
 	// Size of cache line
 	const long BUFFER_SIZE_BYTES = 2048;
@@ -879,11 +881,6 @@ void PKT_intersection(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 
 #pragma omp barrier
 
-#if TIME_RESULTS
-		triTime = timer() - start;
-		start = timer();
-#endif
-
 		//Support computation is done
 		//Computing truss now
 
@@ -892,16 +889,9 @@ void PKT_intersection(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 
 		while (todo > 0) {
 
-#if TIME_RESULTS
-			start = timer();
-#endif
 
 			PKT_scan(numEdges, EdgeSupport, level, curr, &currTail, InCurr);
 
-#if TIME_RESULTS
-			scanTime += timer() - start;
-			start = timer();
-#endif       
 
 			while (currTail > 0) {
 				todo = todo - currTail;
@@ -925,21 +915,11 @@ void PKT_intersection(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 #pragma omp barrier	
 			}
 
-#if TIME_RESULTS
-			procTime += timer() - start;
-#endif 
 
 			level = level + 1;
 #pragma omp barrier	
 
 		}
-
-#if TIME_RESULTS
-		if (tid == 0) {
-			printf("Tri time: %9.3lf \nScan Time: %9.3lf \nProc Time: %9.3lf \n", triTime, scanTime, procTime);
-			printf("PKT-intersection-Time: %9.3lf\n", triTime + scanTime + procTime);
-		}
-#endif
 
 		free(X);
 
@@ -1191,13 +1171,6 @@ void PKT_serial_intersection(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 		startEdge[i] = j;
 	}
 
-#if TIME_RESULTS
-	double triTime = 0;
-	double scanTime = 0;
-	double procTime = 0;
-	double startTime = timer();
-#endif
-
 	for (vid_t u = 0; u < n; u++) {
 
 		for (eid_t j = startEdge[u]; j < g->num_edges[u + 1]; j++) {
@@ -1234,10 +1207,6 @@ void PKT_serial_intersection(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 		}
 	}
 
-#if TIME_RESULTS
-	triTime = timer() - startTime;
-	startTime = timer();
-#endif
 
 	//Support computation is done
 	//Computing support now
@@ -1271,17 +1240,8 @@ void PKT_serial_intersection(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 			nextTail = 0;
 		}
 
-#if TIME_RESULTS
-		procTime += timer() - startTime;
-#endif
 		level = level + 1;
 	}
-
-#if TIME_RESULTS
-	printf("Tri time: %9.3lf \nScan Time: %9.3lf \nProc Time: %9.3lf \n", triTime, scanTime, procTime);
-	printf("PKT-serial-Time-Intersection: %9.3lf\n", triTime + scanTime + procTime);
-#endif
-
 
 	free(X);
 
@@ -1340,13 +1300,6 @@ void PKT_serial_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 		startEdge[i] = j;
 	}
 
-#if TIME_RESULTS
-	double triTime = 0;
-	double scanTime = 0;
-	double procTime = 0;
-	double startTime = timer();
-#endif
-
 	for (vid_t u = 0; u < n; u++) {
 
 		for (eid_t j = startEdge[u]; j < g->num_edges[u + 1]; j++) {
@@ -1383,11 +1336,6 @@ void PKT_serial_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 		}
 	}
 
-#if TIME_RESULTS
-	triTime = timer() - startTime;
-	startTime = timer();
-#endif
-
 	//Support computation is done
 	//Computing truss now
 
@@ -1396,16 +1344,9 @@ void PKT_serial_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 
 	while (todo > 0) {
 
-#if TIME_RESULTS
-		startTime = timer();
-#endif
 
 		PKT_scan_serial(numEdges, EdgeSupport, level, curr, &currTail);
 
-#if TIME_RESULTS
-		scanTime += timer() - startTime;
-		startTime = timer();
-#endif
 
 		while (currTail > 0) {
 			todo = todo - currTail;
@@ -1420,17 +1361,10 @@ void PKT_serial_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 			nextTail = 0;
 		}
 
-#if TIME_RESULTS
-		procTime += timer() - startTime;
-#endif
 
 		level = level + 1;
 	}
 
-#if TIME_RESULTS
-	printf("Tri time: %9.3lf \nScan Time: %9.3lf \nProc Time: %9.3lf \n", triTime, scanTime, procTime);
-	printf("PKT-serial-Time-marking: %9.3lf\n", triTime + scanTime + procTime);
-#endif
 
 	free(X);
 
@@ -1443,7 +1377,7 @@ void PKT_serial_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 
 
 
-/**   Computes the support of each edge in parallel
+/**   并行计算边Support期望值
  *    Computes k-truss in parallel   ****/
 void PKT_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 
@@ -1508,13 +1442,6 @@ void PKT_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 			startEdge[i] = j;
 		}
 
-#if TIME_RESULTS
-		double triTime = 0;
-		double scanTime = 0;
-		double procTime = 0;
-		double start = timer();
-#endif
-
 
 #pragma omp for schedule(dynamic,10) 
 		for (vid_t u = 0; u < n; u++) {
@@ -1553,12 +1480,6 @@ void PKT_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 			}
 		}
 
-
-#if TIME_RESULTS
-		triTime = timer() - start;
-		start = timer();
-#endif
-
 		//Support computation is done
 		//Computing truss now
 
@@ -1567,16 +1488,7 @@ void PKT_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 
 		while (todo > 0) {
 
-#if TIME_RESULTS
-			start = timer();
-#endif
-
 			PKT_scan(numEdges, EdgeSupport, level, curr, &currTail, InCurr);
-
-#if TIME_RESULTS
-			scanTime += timer() - start;
-			start = timer();
-#endif
 
 			while (currTail > 0) {
 				todo = todo - currTail;
@@ -1608,14 +1520,6 @@ void PKT_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 #pragma omp barrier	
 
 		}
-
-
-#if TIME_RESULTS
-		if (tid == 0) {
-			printf("Tri time: %9.3lf \nScan Time: %9.3lf \nProc Time: %9.3lf \n", triTime, scanTime, procTime);
-			printf("PKT-marking-Time: %9.3lf\n\n\n", triTime + scanTime + procTime);
-		}
-#endif
 
 		free(X);
 
