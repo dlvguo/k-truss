@@ -187,6 +187,140 @@ int load_graph_from_file(char* filename, graph_t* g) {
 	return 0;
 }
 
+
+
+//测试版本按大小顺序叠加
+int load_graph_from_fileSig(char* filename, graph_t* g) {
+
+	FILE* infp = fopen(filename, "r");
+	long m = 0;
+	vid_t u, v, t;
+
+#pragma endregion
+
+	if (infp == NULL) {
+		fprintf(stderr, "Error: could not open inputh file: %s.\n Exiting ...\n", filename);
+		exit(1);
+	}
+
+	fprintf(stdout, "Reading input file: %s\n", filename);
+
+	double t0 = timer();
+
+	//Read N and M
+	fscanf(infp, "%ld %ld\n", &(g->n), &(g->m));
+	printf("N: %ld, M: %ld \n", g->n, g->m);
+
+
+	//Allocate space
+	g->num_edges = (eid_t*)malloc((g->n + 1) * sizeof(eid_t));
+	assert(g->num_edges != NULL);
+
+#pragma omp parallel for 
+	for (long i = 0; i < g->n + 1; i++) {
+		g->num_edges[i] = 0;
+	}
+
+	while (fscanf(infp, "%u %u \n", &u, &v) != EOF) {
+		m++;
+		if (u < v) {
+			g->num_edges[u]++;
+		}
+		else
+		{
+			g->num_edges[v]++;
+		}
+	}
+	fclose(infp);
+
+	if (m != g->m) {
+		printf("Reading error: file does not contain %ld edges.\n", g->m);
+		free(g->num_edges);
+		exit(1);
+	}
+
+	m = 0;
+
+	//需要n+1个点
+	eid_t* temp_num_edges = (eid_t*)malloc((g->n + 1) * sizeof(eid_t));
+	assert(temp_num_edges != NULL);
+
+	temp_num_edges[0] = 0;
+
+	for (long i = 0; i < g->n; i++) {
+		m += g->num_edges[i];
+		temp_num_edges[i + 1] = m;
+	}
+
+	//g->m is twice number of edges
+	g->m = m;
+
+	//Allocate space for adj
+	g->adj = (vid_t*)malloc(m * sizeof(vid_t));
+	assert(g->adj != NULL);
+
+#pragma omp parallel
+	{
+#pragma omp for schedule(static)
+		for (long i = 0; i < g->n + 1; i++)
+			g->num_edges[i] = temp_num_edges[i];
+
+#pragma omp for schedule(static)
+		for (long i = 0; i < m; i++)
+			g->adj[i] = 0;
+	}
+
+
+	infp = fopen(filename, "r");
+	if (infp == NULL) {
+		fprintf(stderr, "Error: could not open input file: %s.\n Exiting ...\n", filename);
+		exit(1);
+	}
+
+	//Read N and M
+	fscanf(infp, "%ld %ld\n", &(g->n), &m);
+
+	//Read the edges
+	while (fscanf(infp, "%u %u\n", &u, &v) != EOF) {
+
+		if (u < v) {
+
+			g->adj[temp_num_edges[u]] = v;
+			temp_num_edges[u]++;
+		}
+		else {
+			g->adj[temp_num_edges[v]] = u;
+			temp_num_edges[v]++;
+		}
+
+	}
+
+	fclose(infp);
+
+	//Sort the adjacency lists
+	for (long i = 0; i < g->n; i++) {
+		qsort(g->adj + g->num_edges[i], g->num_edges[i + 1] - g->num_edges[i], sizeof(vid_t), vid_compare);
+	}
+
+	fprintf(stdout, "Reading input file took time: %.2lf sec \n", timer() - t0);
+	free(temp_num_edges);
+
+	cout << "Double-------" << endl;
+	cout << "m-------" << g->m << endl;
+	cout << "edges-------" << endl;
+
+	for (int i = 0; i < g->n + 1; i++)
+	{
+		cout << g->num_edges[i] << endl;
+	}
+	cout << "N-------" << endl;
+	for (int i = 0; i < g->m; i++)
+	{
+		cout << g->adj[i] << endl;
+	}
+	return 0;
+}
+
 // 计算原始的读取方式
 int load_graph_from_fileori(char* filename, graph_t* g) {
 
@@ -345,13 +479,13 @@ int main() {
 
 	char path[100] = "H:/竞赛相关/2020ccf-kmax/k-truss/filetest/example1.txt";
 	char pathori[100] = "H:/竞赛相关/2020ccf-kmax/k-truss/filetest/example1ori.txt";
-	
+
 	//char path[100] = "H:/竞赛相关/2020ccf-kmax/k-truss/k-truss/data/p2p-Gnutella31.txt";
 	// Max Node:3774768 Edges:33037894
 	char path2[102] = "H:/竞赛相关/2020ccf-kmax/ktruss-data/cit-Patents.txt";
-	FigureEdgeAndNode3(path2);
+	//FigureEdgeAndNode3(path2);
 	graph_t g;
-	load_graph_from_file(path, &g);
+	load_graph_from_fileSig(path, &g);
 	load_graph_from_fileori(pathori, &g);
 	system("pause");
 }
