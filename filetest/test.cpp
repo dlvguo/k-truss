@@ -223,12 +223,12 @@ int load_graph_from_fileSig(char* filename, graph_t* g) {
 
 	while (fscanf(infp, "%u %u \n", &u, &v) != EOF) {
 		m++;
-		if (u < v) {
+		if (u > v) {
 			g->num_edges[u]++;
+			g->num_edges[v]++;
 		}
 		else
 		{
-			g->num_edges[v]++;
 		}
 	}
 	fclose(infp);
@@ -283,14 +283,15 @@ int load_graph_from_fileSig(char* filename, graph_t* g) {
 	//Read the edges
 	while (fscanf(infp, "%u %u\n", &u, &v) != EOF) {
 
-		if (u < v) {
+		if (u > v) {
 
 			g->adj[temp_num_edges[u]] = v;
 			temp_num_edges[u]++;
-		}
-		else {
 			g->adj[temp_num_edges[v]] = u;
 			temp_num_edges[v]++;
+		}
+		else {
+
 		}
 
 	}
