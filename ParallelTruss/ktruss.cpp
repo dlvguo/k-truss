@@ -119,7 +119,7 @@ long figuremax(long a, long b) {
 }
 
 int load_graph_from_file(char* filename, graph_t* g) {
-	double t0 = timer();
+	// double t0 = timer();
 
 
 	FILE* infp = fopen(filename, "r");
@@ -249,7 +249,7 @@ int load_graph_from_file(char* filename, graph_t* g) {
 		qsort(g->adj + g->num_edges[i], g->num_edges[i + 1] - g->num_edges[i], sizeof(vid_t), vid_compare);
 	}
 
-	fprintf(stdout, "Reading input file took time: %.2lf sec \n", timer() - t0);
+	// fprintf(stdout, "Reading input file took time: %.2lf sec \n", timer() - t0);
 	free(temp_num_edges);
 	return 0;
 }
@@ -839,13 +839,6 @@ void PKT_intersection(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 			startEdge[i] = j;
 		}
 
-#if TIME_RESULTS
-		double triTime = 0;
-		double scanTime = 0;
-		double procTime = 0;
-		double start = timer();
-#endif
-
 #pragma omp for schedule(dynamic,10) 
 		for (vid_t u = 0; u < n; u++) {
 
@@ -1221,16 +1214,9 @@ void PKT_serial_intersection(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 
 	while (todo > 0) {
 
-#if TIME_RESULTS
-		startTime = timer();
-#endif
-
+		// 顺序PKT扫描 
 		PKT_scan_serial(numEdges, EdgeSupport, level, curr, &currTail);
 
-#if TIME_RESULTS
-		scanTime += timer() - startTime;
-		startTime = timer();
-#endif
 
 		while (currTail > 0) {
 			todo = todo - currTail;
@@ -1517,10 +1503,6 @@ void PKT_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 #pragma omp barrier	
 			}
 
-#if TIME_RESULTS
-			procTime += timer() - start;
-#endif
-
 			level = level + 1;
 #pragma omp barrier	
 
@@ -1556,10 +1538,6 @@ void Ros(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 	int* local_max_support = (int*)malloc(NUM_THREADS * sizeof(unsigned int));
 	assert(local_max_support != NULL);
 
-#if TIME_RESULTS
-	double supTime = 0.0, procTime = 0.0;
-	double startTime = timer();
-#endif
 
 	//parallel region
 #pragma omp parallel 
@@ -1573,12 +1551,6 @@ void Ros(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 		for (long i = 0; i < g->n; i++) {
 			X[i] = numEdges + 1;
 		}
-
-#if TIME_RESULTS
-		if (tid == 0) {
-			startTime = timer();
-		}
-#endif
 
 		//Compute the support of each edge in parallel
 #pragma omp for schedule(static) 
@@ -1619,11 +1591,6 @@ void Ros(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 			}
 		}
 
-#if TIME_RESULTS
-		if (tid == 0) {
-			supTime = timer() - startTime;
-		}
-#endif
 
 		//free X
 		free(X);
@@ -1655,9 +1622,6 @@ void Ros(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 	for (long i = 0; i < maxSupport + 2; i++)
 		bin[i] = 0;
 
-#if TIME_RESULTS
-	startTime = timer();
-#endif
 
 	//Find number of edges for each support in: 0...maxSupport
 	for (long i = 0; i < numEdges; i++) {
@@ -1767,11 +1731,7 @@ void Ros(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 
 	}  //end of for loop      
 
-#if TIME_RESULTS
-	procTime = timer() - startTime;
-	printf("support time: %9.3lf \nproc time: %9.3lf\n", supTime, procTime);
-	printf("Ros Time: %9.3lf\n", supTime + procTime);
-#endif
+
 
 	/*****     Free Memory    ******/
 	free(local_max_support);
@@ -1800,11 +1760,6 @@ void Ros_serial(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 	for (long i = 0; i < g->n; i++) {
 		X[i] = (numEdges + 1);
 	}
-
-#if TIME_RESULTS
-	double supTime = 0, procTime = 0;
-	double startTime = timer();
-#endif
 
 	//Compute the support of each edge 
 	for (long e = 0; e < numEdges; e++) {
@@ -1844,9 +1799,6 @@ void Ros_serial(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 		}
 	}
 
-#if TIME_RESULTS
-	supTime = timer() - startTime;
-#endif
 
 	//Copmute k-truss using bin-sort
 	//Sorted edges array according to increasing support
@@ -1863,9 +1815,6 @@ void Ros_serial(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 	unsigned int* bin = (unsigned int*)malloc((maxSupport + 2) * sizeof(unsigned int));
 	assert(bin != NULL);
 
-#if TIME_RESULTS
-	startTime = timer();
-#endif
 
 	for (long i = 0; i < maxSupport + 2; i++)
 		bin[i] = 0;
@@ -1976,11 +1925,6 @@ void Ros_serial(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 
 	}  //end of for loop
 
-#if TIME_RESULTS
-	procTime = timer() - startTime;
-	printf("support time: %9.3lf \nproc time: %9.3lf\n", supTime, procTime);
-	printf("Ros-serial Time: %9.3lf\n", supTime + procTime);
-#endif
 
 	/*****     Free Memory    ******/
 	free(proc);
@@ -2022,10 +1966,6 @@ void WC(graph_t* g, int* EdgeSupport, MapType& edgeToIdMap, Edge* edgeIdToEdge) 
 		X[i] = numEdges + 1;
 	}
 
-#if TIME_RESULTS
-	double procTime = 0.0, supTime = 0.0;
-	double startTime = timer();
-#endif
 
 	//Compute the support of each edge
 	for (long e = 0; e < numEdges; e++) {
@@ -2065,9 +2005,6 @@ void WC(graph_t* g, int* EdgeSupport, MapType& edgeToIdMap, Edge* edgeIdToEdge) 
 		}
 	}
 
-#if TIME_RESULTS
-	supTime = timer() - startTime;
-#endif
 
 	//free X
 	free(X);
@@ -2088,9 +2025,6 @@ void WC(graph_t* g, int* EdgeSupport, MapType& edgeToIdMap, Edge* edgeIdToEdge) 
 	for (long i = 0; i < maxSupport + 2; i++)
 		bin[i] = 0;
 
-#if TIME_RESULTS
-	startTime = timer();
-#endif
 
 	//Find number of edges with each support in 0...maxSupport
 	for (long i = 0; i < numEdges; i++) {
@@ -2234,16 +2168,9 @@ void WC(graph_t* g, int* EdgeSupport, MapType& edgeToIdMap, Edge* edgeIdToEdge) 
 		}
 		k++;
 	}
-
-#if TIME_RESULTS
-	procTime = timer() - startTime;
-	printf("Support Time: %9.3lf \nProc Time: %9.3lf\n", supTime, procTime);
-	printf("WC Time: %9.3lf\n", supTime + procTime);
-#endif
-
 }
 
-//  输出
+// 输出Kmax
 void display_stats(int* EdgeSupport, long numEdges) {
 	int maxSup = 0;
 
@@ -2277,14 +2204,13 @@ int main(int argc, char* argv[]) {
 	//char path[50] = "./example.txt";
 	// 读取线程数
 	read_env();
-
 	graph_t g;
 
 	//读取图文件
-	load_graph_from_file(argv[1], &g);
+	load_graph_from_file(argv[2], &g);
 
 	//计时
-	double t0 = timer();
+	//double t0 = timer();
 
 	/************   Compute k - truss *****************************************/
 	//edge list array
@@ -2307,7 +2233,7 @@ int main(int argc, char* argv[]) {
 	// 输出结果
 	display_stats(EdgeSupport, g.m / 2);
 
-	fprintf(stdout, "Figure took time: %.2lf sec \n", timer() - t0);
+	// fprintf(stdout, "Figure took time: %.2lf sec \n", timer() - t0);
 
 	//Free memory
 	free_graph(&g);

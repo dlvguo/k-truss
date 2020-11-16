@@ -1,0 +1,4 @@
+在项目根目录下运行make，生成ktruss文件
+运行代码为 ./ktruss -f 文件路径全名
+如:
+./ktruss -f ./ktruss-data/soc-LiveJournal.tsv 
