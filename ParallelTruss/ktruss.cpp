@@ -89,12 +89,12 @@ struct edgeEqual {
 
 typedef unordered_map<Edge, long, EdgeHasher, edgeEqual> MapType;
 
-//static double timer() {
-//	struct timeval tp;
-//	gettimeofday(&tp, NULL);
-//	return ((double)(tp.tv_sec) + tp.tv_usec * 1e-6);
-//	// return 0;
-//}
+static double timer() {
+	struct timeval tp;
+	gettimeofday(&tp, NULL);
+	return ((double)(tp.tv_sec) + tp.tv_usec * 1e-6);
+	// return 0;
+}
 
 void read_env() {
 
@@ -119,7 +119,7 @@ long figuremax(long a, long b) {
 }
 
 int load_graph_from_file(char* filename, graph_t* g) {
-	// double t0 = timer();
+	double t0 = timer();
 
 
 	FILE* infp = fopen(filename, "r");
@@ -154,7 +154,7 @@ int load_graph_from_file(char* filename, graph_t* g) {
 	}
 
 
-	Adj.resize(g->n + 1);
+	// Adj.resize(g->n + 1);
 	//#pragma omp parallel for 
 	//	for (long i = 0; i < g->n + 1; i++) {
 	//		Adj[i].clear();
@@ -164,10 +164,14 @@ int load_graph_from_file(char* filename, graph_t* g) {
 	infp = fopen(filename, "r");
 	//读边
 	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
-		//避免重复			
-		if (Adj[u].find(v) == Adj[u].end()) {
-			Adj[u][v] = 0;
-			Adj[v][u] = 0;
+		////避免重复			
+		//if (Adj[u].find(v) == Adj[u].end()) {
+		//	Adj[u][v] = 0;
+		//	Adj[v][u] = 0;
+		//	g->num_edges[u]++;
+		//	g->num_edges[v]++;
+		//}
+		if (u > v) {
 			g->num_edges[u]++;
 			g->num_edges[v]++;
 		}
@@ -220,20 +224,22 @@ int load_graph_from_file(char* filename, graph_t* g) {
 		exit(1);
 	}
 
-#pragma omp parallel for 
-	for (long i = 0; i < g->n + 1; i++) {
-		Adj[i].clear();
-	}
-	//Read the edges
+	//#pragma omp parallel for 
+	//	for (long i = 0; i < g->n + 1; i++) {
+	//		Adj[i].clear();
+	//	}
+		//Read the edges
 	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
-		if (Adj[u].find(v) == Adj[u].end()) {
+		/*if (Adj[u].find(v) == Adj[u].end()) {
 			Adj[u][v] = 0;
-			Adj[v][u] = 0;
+			Adj[v][u] = 0;*/
+		if (u > v) {
 			g->adj[temp_num_edges[u]] = v;
 			temp_num_edges[u]++;
 			g->adj[temp_num_edges[v]] = u;
 			temp_num_edges[v]++;
 		}
+		//}
 	}
 
 	fclose(infp);
@@ -243,7 +249,7 @@ int load_graph_from_file(char* filename, graph_t* g) {
 		qsort(g->adj + g->num_edges[i], g->num_edges[i + 1] - g->num_edges[i], sizeof(vid_t), vid_compare);
 	}
 
-	// fprintf(stdout, "Reading input file took time: %.2lf sec \n", timer() - t0);
+	fprintf(stdout, "Reading input file took time: %.2lf sec \n", timer() - t0);
 	free(temp_num_edges);
 	return 0;
 }
@@ -2278,7 +2284,7 @@ int main(int argc, char* argv[]) {
 	load_graph_from_file(argv[1], &g);
 
 	//计时
-	// double t0 = timer();
+	double t0 = timer();
 
 	/************   Compute k - truss *****************************************/
 	//edge list array
@@ -2301,7 +2307,7 @@ int main(int argc, char* argv[]) {
 	// 输出结果
 	display_stats(EdgeSupport, g.m / 2);
 
-	// fprintf(stdout, "Figure took time: %.2lf sec \n", timer() - t0);
+	fprintf(stdout, "Figure took time: %.2lf sec \n", timer() - t0);
 
 	//Free memory
 	free_graph(&g);
