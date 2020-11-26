@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ktruss - 副本.cpp" />
     <ClCompile Include="ktruss.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
