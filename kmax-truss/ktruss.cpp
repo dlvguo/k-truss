@@ -270,7 +270,7 @@ void getEidAndEdgeList(Graph* g, Edge* els) {
 #pragma region 并行计算edgesupport与k-truss
 
 void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail, int* edgeSupport,
-	int level, UI* next, bool* InNext, long* nextTail, bool* processed, Edge* edgeIdtoEdge) {
+	int level, UI* next, bool* InNext, long* nextTail, bool* processed, Edge* cls) {
 
 	//Size of cache line
 	const long BUFFER_SIZE_BYTES = 2048;
@@ -285,7 +285,7 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 		//process edge <u,v>
 		UI e1 = curr[i];
 
-		Edge edge = edgeIdtoEdge[e1];
+		Edge edge = cls[e1];
 
 		UI u = edge.u;
 		UI v = edge.v;
@@ -558,14 +558,15 @@ void scanLevel(long edgeNums, int* edgeSupport, int level, UI* curr, long* currT
 
 		for (long j = 0; j < index; j++) {
 			curr[tempIdx + j] = buff[j];
+			cout << 'curr' << curr[tempIdx + j] << endl;
 		}
 	}
-	free(buff);
+	// free(buff);
 #pragma omp barrier
 }
 
 // 计算ktruss
-void figurektruss(Graph* g, int* edgeSupport, Edge* edgeIdToEdge) {
+void figurektruss(Graph* g, int* edgeSupport, Edge* els) {
 	// 边数量
 	long edgeNums = g->m / 2;
 	long nodeNums = g->nodeNums;
@@ -681,7 +682,7 @@ void figurektruss(Graph* g, int* edgeSupport, Edge* edgeIdToEdge) {
 			while (currTail > 0) {
 				todo = todo - currTail;
 
-				figureSubLevel_intersection(g, curr, InCurr, currTail, edgeSupport, level, next, InNext, &nextTail, processed, edgeIdToEdge);
+				figureSubLevel_intersection(g, curr, InCurr, currTail, edgeSupport, level, next, InNext, &nextTail, processed, els);
 
 				if (tid == 0) {
 					UI* tempCurr = curr;
@@ -768,11 +769,16 @@ int main(int argc, char* argv[]) {
 
 	/************   Compute k - truss *****************************************/
 	//获取边列表
-	Edge* edgeIdToEdge = (Edge*)malloc((g.m / 2) * sizeof(Edge));
+	Edge* els = (Edge*)malloc((g.m / 2) * sizeof(Edge));
 	// assert(edgeIdToEdge != NULL);
 
 	// Populate the edge list array
-	getEidAndEdgeList(&g, edgeIdToEdge);
+	getEidAndEdgeList(&g, els);
+
+	for (int i = 0; i < g.m / 2; i++)
+	{
+		cout << els[i].u << els[i].v << endl;
+	}
 
 	int* edgeSupport = (int*)calloc(g.m / 2, sizeof(int));
 
@@ -784,7 +790,7 @@ int main(int argc, char* argv[]) {
 		edgeSupport[i] = 0;
 	}
 
-	figurektruss(&g, edgeSupport, edgeIdToEdge);
+	figurektruss(&g, edgeSupport, els);
 	// PKT_intersection(&g, EdgeSupport, edgeIdToEdge);
 
 	// 输出kmax
