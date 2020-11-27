@@ -38,6 +38,8 @@ typedef struct Graph {
 	vector<UI> veid;
 };
 
+vector<UI> vts;
+
 // 边结构体
 typedef struct Edge {
 	UI u, v;
@@ -87,9 +89,13 @@ void load_graph(Graph* g, char* path) {
 	//TODO 应该可以改另外种读取方式 计算最大边和最大顶点 figure应该只需要一边因为肯定最左边会出现一次
 	double t1 = timer();
 	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
-		//m++;
-		_max = figuremax(_max, u);
-		// 考虑建立邻接矩阵
+		//只获取一半
+		if (u > v) {
+			_max = figuremax(_max, u);
+			vts.push_back(u);
+			vts.push_back(v);
+			// 考虑建立邻接矩阵
+		}
 	}
 	fclose(infp);
 	fprintf(stdout, "ReadFirstFile took time: %.2lf sec \n", timer() - t1);
@@ -110,35 +116,35 @@ void load_graph(Graph* g, char* path) {
 		// g->vnum_edges[i] = 0;
 	}
 
-
-	// Adj.resize(g->n + 1);
-	//#pragma omp parallel for 
-	//	for (long i = 0; i < g->n + 1; i++) {
-	//		Adj[i].clear();
-	//	}
-
-	infp = fopen(path, "r");
 	//读边
 	t1 = timer();
-	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
-		////避免重复			
-		//if (Adj[u].find(v) == Adj[u].end()) {
-		//	Adj[u][v] = 0;
-		//	Adj[v][u] = 0;
-		//	g->num_edges[u]++;
-		//	g->num_edges[v]++;
-		//}
-		if (u > v) {
-			g->num_edges[u]++;
-			g->num_edges[v]++;
 
-			//temp
-			/*g->vnum_edges[u]++;
-			g->vnum_edges[v]++;*/
-		}
+	for (UI i = 0; i < vts.size(); i += 2)
+	{
+		g->num_edges[vts[i]]++;
+		g->num_edges[vts[i + 1]]++;
 	}
 
-	fclose(infp);
+	// infp = fopen(path, "r");
+	//while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
+	//	////避免重复			
+	//	//if (Adj[u].find(v) == Adj[u].end()) {
+	//	//	Adj[u][v] = 0;
+	//	//	Adj[v][u] = 0;
+	//	//	g->num_edges[u]++;
+	//	//	g->num_edges[v]++;
+	//	//}
+	//	if (u > v) {
+	//		g->num_edges[u]++;
+	//		g->num_edges[v]++;
+
+	//		//temp
+	//		/*g->vnum_edges[u]++;
+	//		g->vnum_edges[v]++;*/
+	//	}
+	//}
+
+	//fclose(infp);
 	// 边问题一般不需要
 	fprintf(stdout, "ReadSecondFile took time: %.2lf sec \n", timer() - t1);
 
@@ -181,48 +187,51 @@ void load_graph(Graph* g, char* path) {
 	}
 
 	t1 = timer();
-	infp = fopen(path, "r");
-	if (infp == NULL) {
-		fprintf(stderr, "Error: could not open input file: %s.\n Exiting ...\n", path);
-		exit(1);
+
+	for (UI i = 0; i < vts.size(); i += 2)
+	{
+		/*UI u = vts[i], v = vts[i + 1];
+		cout << u << ' ' << v << endl;*/
+
+		g->adj[temp_num_edges[vts[i]]] = vts[i + 1];
+		temp_num_edges[vts[i]]++;
+
+		g->adj[temp_num_edges[vts[i + 1]]] = vts[i];
+		temp_num_edges[vts[i + 1]]++;
 	}
 
-	//#pragma omp parallel for 
-	//	for (long i = 0; i < g->n + 1; i++) {
-	//		Adj[i].clear();
+	//infp = fopen(path, "r");
+	//while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
+	//	/*if (Adj[u].find(v) == Adj[u].end()) {
+	//		Adj[u][v] = 0;
+	//		Adj[v][u] = 0;*/
+	//	if (u > v) {
+	//		// 为了后面编码寻找UV的
+	//		g->adj[temp_num_edges[u]] = v;
+	//		temp_num_edges[u]++;
+	//		g->adj[temp_num_edges[v]] = u;
+	//		temp_num_edges[v]++;
+
+	//		/*g->vadj[vtempnums[u]] = v;
+	//		vtempnums[u]++;
+	//		g->vadj[vtempnums[v]] = u;
+	//		vtempnums[v]++;*/
 	//	}
-	//Read the edges
-	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
-		/*if (Adj[u].find(v) == Adj[u].end()) {
-			Adj[u][v] = 0;
-			Adj[v][u] = 0;*/
-		if (u > v) {
-			// 为了后面编码寻找UV的
-			g->adj[temp_num_edges[u]] = v;
-			temp_num_edges[u]++;
-			g->adj[temp_num_edges[v]] = u;
-			temp_num_edges[v]++;
-
-			/*g->vadj[vtempnums[u]] = v;
-			vtempnums[u]++;
-			g->vadj[vtempnums[v]] = u;
-			vtempnums[v]++;*/
-		}
-		//}
-	}
-
-	fclose(infp);
+	//	//}
+	//}
+	// fclose(infp);
+	vts.clear();
 	fprintf(stdout, "ReadThirdFile took time: %.2lf sec \n", timer() - t1);
-	t1 = timer();
-	//TODO 测试可去 根据边排序排列 应该可以省略 对应文章的N 区间下的点对应的边 
-	for (long i = 0; i < g->nodeNums; i++) {
-		qsort(g->adj + g->num_edges[i], g->num_edges[i + 1] - g->num_edges[i], sizeof(UI), vid_compare);
-		/*for (int j = g->num_edges[i]; j < g->num_edges[i + 1] - g->num_edges[i]; j++)
-		{
-			g->vadj[j] = g->adj[j];
-		}*/
-	}
-	fprintf(stdout, "qsort took time: %.2lf sec \n", timer() - t1);
+	//t1 = timer();
+	//TODO 测试多个数据集后可以考虑 根据边排序排列 应该可以省略 对应文章的N 区间下的点对应的边 
+	//for (long i = 0; i < g->nodeNums; i++) {
+	//	qsort(g->adj + g->num_edges[i], g->num_edges[i + 1] - g->num_edges[i], sizeof(UI), vid_compare);
+	//	/*for (int j = g->num_edges[i]; j < g->num_edges[i + 1] - g->num_edges[i]; j++)
+	//	{
+	//		g->vadj[j] = g->adj[j];
+	//	}*/
+	//}
+	//fprintf(stdout, "qsort took time: %.2lf sec \n", timer() - t1);
 
 	/*for (int i = 0; i < g->m; i++)
 	{
