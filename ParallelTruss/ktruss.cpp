@@ -144,7 +144,6 @@ int load_graph_from_file(char* filename, graph_t* g) {
 	// cout << "N:" << g->n << " E:" << g->m << endl;
 
 
-
 	//初始化边
 	g->num_edges = (eid_t*)malloc((g->n + 1) * sizeof(eid_t));
 	assert(g->num_edges != NULL);
@@ -312,11 +311,13 @@ void PKT_scan(long numEdges, int* EdgeSupport, int level, eid_t* curr, long* cur
 #pragma omp for schedule(static) 
 	for (long i = 0; i < numEdges; i++) {
 		if (EdgeSupport[i] == level) {
+			// 计算level的边
 			buff[index] = i;
 			InCurr[i] = true;
 			index++;
 
 			if (index >= BUFFER_SIZE) {
+				// 使用原子操作 采用缓冲区 避免占用过大开销
 				long tempIdx = __sync_fetch_and_add(currTail, BUFFER_SIZE);
 
 				for (long j = 0; j < BUFFER_SIZE; j++) {
@@ -585,7 +586,7 @@ void PKT_processSubLevel_marking(graph_t* g, eid_t* curr, bool* InCurr, long cur
 		for (eid_t j = g->num_edges[u]; j < g->num_edges[u + 1]; j++) {
 			vid_t w = g->adj[j];
 			if (w != v)
-				X[w] = j + 1;
+				X[w] = j + 1;//标记w
 		}
 
 		//Check the adj list of vertex v
@@ -1374,7 +1375,7 @@ void PKT_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 
 	long numEdges = g->m / 2;
 	long n = g->n;
-
+	// 线程判断处理
 	bool* processed = (bool*)malloc(numEdges * sizeof(bool));
 	assert(processed != NULL);
 
@@ -1405,6 +1406,7 @@ void PKT_marking(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 		eid_t* X = (eid_t*)malloc(g->n * sizeof(eid_t));
 		assert(X != NULL);
 
+		//TODO 加快
 		for (vid_t i = 0; i < g->n; i++) {
 			X[i] = 0;
 		}
@@ -1936,7 +1938,7 @@ void Ros_serial(graph_t* g, int* EdgeSupport, Edge* edgeIdToEdge) {
 }
 
 /**   WC algorithm for truss decomposition
- *
+ *	早期删边算法
  * J.Wang and J. Cheng, "Truss decomposition in massive networks", Proc. VLDB Endow., vol 5, no 9, pp.
  * 812-823, May 2012.
  *
