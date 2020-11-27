@@ -51,8 +51,9 @@ void setting_thread() {
 		ThreadNum = omp_get_num_threads();
 	}
 
-	/*printf("NUM_PROCS:     %d \n", omp_get_num_procs());
-	printf("NUM_THREADS:   %d \n", NUM_THREADS);*/
+	// TODO根据系统自动获取线程数
+	printf("NUM_PROCS:     %d \n", omp_get_num_procs());
+	printf("NUM_THREADS:   %d \n", ThreadNum);
 }
 
 #pragma region Read File
@@ -74,13 +75,14 @@ void load_graph(Graph* g, char* path) {
 		exit(1);
 	}
 
-	UI u, v, t;
-	long m = 0, _max = 0;
+	UI u, v, t, _max = 0;
+	long m = 0;
 	// fprintf(stdout, "Reading input file: %s\n", path);
-	//TODO 应该可以改另外种读取方式 计算最大边和最大顶点 
+	//TODO 应该可以改另外种读取方式 计算最大边和最大顶点 figure应该只需要一边因为肯定最左边会出现一次
 	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
 		//m++;
-		_max = figuremax(_max, figuremax(u, v));
+		_max = figuremax(_max, u);
+		// 考虑建立邻接矩阵
 	}
 	fclose(infp);
 
@@ -90,13 +92,14 @@ void load_graph(Graph* g, char* path) {
 
 	//初始化边
 	g->num_edges = (UI*)malloc((g->nodeNums + 1) * sizeof(UI));
-	g->vnum_edges.resize(g->nodeNums + 1);
-	assert(g->num_edges != NULL);
+
+	// g->vnum_edges.resize(g->nodeNums + 1);
+
 #pragma omp parallel for 
 	for (long i = 0; i < g->nodeNums + 1; i++) {
 		g->num_edges[i] = 0;
 		// TODO 注意删除临时分量
-		g->vnum_edges[i] = 0;
+		// g->vnum_edges[i] = 0;
 	}
 
 
@@ -122,25 +125,20 @@ void load_graph(Graph* g, char* path) {
 			g->num_edges[v]++;
 
 			//temp
-			g->vnum_edges[u]++;
-			g->vnum_edges[v]++;
+			/*g->vnum_edges[u]++;
+			g->vnum_edges[v]++;*/
 		}
 	}
 
 	fclose(infp);
 	// 边问题一般不需要
-	/*if (m != g->m) {
-		printf("Reading error: file does not contain %ld edges.\n", g->m);
-		free(g->num_edges);
-		exit(1);
-	}*/
 
 	// m = 0;
 
 	//需要n+1个点 跟边一样
 	UI* temp_num_edges = (UI*)malloc((g->nodeNums + 1) * sizeof(UI));
-	vector<UI> vtempnums(g->nodeNums + 1, 0);
-	assert(temp_num_edges != NULL);
+	// vector<UI> vtempnums(g->nodeNums + 1, 0);
+	// assert(temp_num_edges != NULL);
 
 	temp_num_edges[0] = 0;
 
@@ -150,7 +148,7 @@ void load_graph(Graph* g, char* path) {
 
 		temp_num_edges[i + 1] = m;
 		// 临时数组查看
-		vtempnums[i + 1] = m;
+		// vtempnums[i + 1] = m;
 
 	}
 
@@ -160,8 +158,7 @@ void load_graph(Graph* g, char* path) {
 	//Allocate space for adj
 	g->adj = (UI*)malloc(m * sizeof(UI));
 	// adj临时赋值
-	g->vadj.resize(m, 0);
-	assert(g->adj != NULL);
+	// g->vadj.resize(m, 0);
 
 #pragma omp parallel
 	{
@@ -197,10 +194,10 @@ void load_graph(Graph* g, char* path) {
 			g->adj[temp_num_edges[v]] = u;
 			temp_num_edges[v]++;
 
-			g->vadj[vtempnums[u]] = v;
+			/*g->vadj[vtempnums[u]] = v;
 			vtempnums[u]++;
 			g->vadj[vtempnums[v]] = u;
-			vtempnums[v]++;
+			vtempnums[v]++;*/
 		}
 		//}
 	}
@@ -210,17 +207,17 @@ void load_graph(Graph* g, char* path) {
 	//TODO 测试可去 根据边排序排列 应该可以省略 对应文章的N 区间下的点对应的边 
 	for (long i = 0; i < g->nodeNums; i++) {
 		qsort(g->adj + g->num_edges[i], g->num_edges[i + 1] - g->num_edges[i], sizeof(UI), vid_compare);
-		for (int j = g->num_edges[i]; j < g->num_edges[i + 1] - g->num_edges[i]; j++)
+		/*for (int j = g->num_edges[i]; j < g->num_edges[i + 1] - g->num_edges[i]; j++)
 		{
 			g->vadj[j] = g->adj[j];
-		}
+		}*/
 	}
-	for (int i = 0; i < g->m; i++)
+	/*for (int i = 0; i < g->m; i++)
 	{
 		cout << g->adj[i] << endl;
-	}
+	}*/
 	// fprintf(stdout, "Reading input file took time: %.2lf sec \n", timer() - t0);
-	// free(temp_num_edges);
+	free(temp_num_edges);
 }
 
 
@@ -267,12 +264,12 @@ void getEidAndEdgeList(Graph* g, Edge* els) {
 
 #pragma endregion
 
-#pragma region 并行计算edgesupport与k-truss
+#pragma region 并行计算edgeSupport与k-truss
 
 void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail, int* edgeSupport,
-	int level, UI* next, bool* InNext, long* nextTail, bool* processed, Edge* cls) {
+	int level, UI* next, bool* InNext, long* nextTail, bool* processed, Edge* els) {
 
-	//Size of cache line
+	//缓存数量
 	const long BUFFER_SIZE_BYTES = 2048;
 	const long BUFFER_SIZE = BUFFER_SIZE_BYTES / sizeof(UI);
 
@@ -282,10 +279,10 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 #pragma omp for schedule(dynamic,4)
 	for (long i = 0; i < currTail; i++) {
 
-		//process edge <u,v>
+		//处理边
 		UI e1 = curr[i];
 
-		Edge edge = cls[e1];
+		Edge edge = els[e1];
 
 		UI u = edge.u;
 		UI v = edge.v;
@@ -293,14 +290,11 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 		UI uStart = g->num_edges[u], uEnd = g->num_edges[u + 1];
 		UI vStart = g->num_edges[v], vEnd = g->num_edges[v + 1];
 
-		unsigned int numElements = (uEnd - uStart) + (vEnd - vStart);
+		UI numElements = (uEnd - uStart) + (vEnd - vStart);
 		UI j_index = uStart, k_index = vStart;
 
-		for (unsigned int innerIdx = 0; innerIdx < numElements; innerIdx++) {
-			if (j_index >= uEnd) {
-				break;
-			}
-			else if (k_index >= vEnd) {
+		for (UI innerIdx = 0; innerIdx < numElements; innerIdx++) {
+			if (j_index >= uEnd || k_index >= vEnd) {
 				break;
 			}
 			else if (g->adj[j_index] == g->adj[k_index]) {
@@ -315,10 +309,11 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 					//Decrease support of both e2 and e3
 					if (edgeSupport[e2] > level && edgeSupport[e3] > level) {
 
-						//Process e2
-						edgeSupport[e2]--;
-						//TODO e2 原子锁注意 int supE2 = __sync_fetch_and_sub(&EdgeSupport[e2], 1);
-						int supE2 = edgeSupport[e2];
+						//TODO e2 原子锁注意 
+						int supE2 = __sync_fetch_and_sub(&edgeSupport[e2], 1);
+						/*int supE2 = edgeSupport[e2];
+						edgeSupport[e2]--;*/
+
 						if (supE2 == (level + 1)) {
 							buff[index] = e2;
 							InNext[e2] = true;
@@ -326,24 +321,25 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 						}
 
 						if (supE2 <= level) {
-							edgeSupport[e2]++;
-							// __sync_fetch_and_add(&EdgeSupport[e2], 1);
+							//edgeSupport[e2]++;
+							__sync_fetch_and_add(&edgeSupport[e2], 1);
 						}
 
 						if (index >= BUFFER_SIZE) {
+							/*long tempIdx = *nextTail;
 							*nextTail += BUFFER_SIZE;
-							// long tempIdx = __sync_fetch_and_add(nextTail, BUFFER_SIZE);
-							long tempIdx = *nextTail;
+							*/
+							long tempIdx = __sync_fetch_and_add(nextTail, BUFFER_SIZE);
 							for (long bufIdx = 0; bufIdx < BUFFER_SIZE; bufIdx++)
 								next[tempIdx + bufIdx] = buff[bufIdx];
 							index = 0;
 						}
 
 						//Process e3
-						edgeSupport[e3]--;
-						int supE3 = edgeSupport[e3];
+					/*	int supE3 = edgeSupport[e3];
+						edgeSupport[e3]--;*/
 
-						//int supE3 = __sync_fetch_and_sub(&EdgeSupport[e3], 1);
+						int supE3 = __sync_fetch_and_sub(&edgeSupport[e3], 1);
 
 						if (supE3 == (level + 1)) {
 							buff[index] = e3;
@@ -352,15 +348,14 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 						}
 
 						if (supE3 <= level) {
-							edgeSupport[e3]++;
-							// __sync_fetch_and_add(&EdgeSupport[e3], 1);
+							// edgeSupport[e3]++;
+							__sync_fetch_and_add(&edgeSupport[e3], 1);
 						}
 
 						if (index >= BUFFER_SIZE) {
-							*nextTail += BUFFER_SIZE;
-							// long tempIdx = __sync_fetch_and_add(nextTail, BUFFER_SIZE);
-							long tempIdx = *nextTail;
-							// long tempIdx = __sync_fetch_and_add(nextTail, BUFFER_SIZE);
+							/*long tempIdx = *nextTail;
+							*nextTail += BUFFER_SIZE;*/
+							long tempIdx = __sync_fetch_and_add(nextTail, BUFFER_SIZE);
 
 							for (long bufIdx = 0; bufIdx < BUFFER_SIZE; bufIdx++)
 								next[tempIdx + bufIdx] = buff[bufIdx];
@@ -372,9 +367,10 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 
 						//process e2 only if e1 < e3
 						if (e1 < e3 && InCurr[e3]) {
-							edgeSupport[e2]++;
-							//int supE2 = __sync_fetch_and_sub(&EdgeSupport[e2], 1);
-							int supE2 = edgeSupport[e2];
+							int supE2 = __sync_fetch_and_sub(&edgeSupport[e2], 1);
+							/*int supE2 = edgeSupport[e2];
+							edgeSupport[e2]++;*/
+
 							if (supE2 == (level + 1)) {
 								buff[index] = e2;
 								InNext[e2] = true;
@@ -382,14 +378,14 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 							}
 
 							if (supE2 <= level) {
-								edgeSupport[e2]++;
-								// __sync_fetch_and_add(&EdgeSupport[e2], 1);
+								// edgeSupport[e2]++;
+								__sync_fetch_and_add(&edgeSupport[e2], 1);
 							}
 
 							if (index >= BUFFER_SIZE) {
-								*nextTail += BUFFER_SIZE;
-								// long tempIdx = __sync_fetch_and_add(nextTail, BUFFER_SIZE);
-								long tempIdx = *nextTail;
+								long tempIdx = __sync_fetch_and_add(nextTail, BUFFER_SIZE);
+								/*long tempIdx = *nextTail;
+								*nextTail += BUFFER_SIZE;*/
 
 								for (long bufIdx = 0; bufIdx < BUFFER_SIZE; bufIdx++)
 									next[tempIdx + bufIdx] = buff[bufIdx];
@@ -397,9 +393,10 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 							}
 						}
 						if (!InCurr[e3]) { //if e3 is not in curr array then decrease support of e2
-							edgeSupport[e2]++;
-							//int supE2 = __sync_fetch_and_sub(&EdgeSupport[e2], 1);
-							int supE2 = edgeSupport[e2];
+							int supE2 = __sync_fetch_and_sub(&edgeSupport[e2], 1);
+							/*int supE2 = edgeSupport[e2];
+							edgeSupport[e2]++;*/
+
 							if (supE2 == (level + 1)) {
 								buff[index] = e2;
 								InNext[e2] = true;
@@ -407,15 +404,15 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 							}
 
 							if (supE2 <= level) {
-								edgeSupport[e2]++;
-								// __sync_fetch_and_add(&EdgeSupport[e2], 1);
+								//edgeSupport[e2]++;
+								__sync_fetch_and_add(&edgeSupport[e2], 1);
 							}
 
 							if (index >= BUFFER_SIZE) {
-								*nextTail += BUFFER_SIZE;
+								long tempIdx = __sync_fetch_and_add(nextTail, BUFFER_SIZE);
+								/*long tempIdx = *nextTail;
+								*nextTail += BUFFER_SIZE;*/
 
-								//long tempIdx = __sync_fetch_and_add(nextTail, BUFFER_SIZE);
-								long tempIdx = *nextTail;
 								for (long bufIdx = 0; bufIdx < BUFFER_SIZE; bufIdx++)
 									next[tempIdx + bufIdx] = buff[bufIdx];
 								index = 0;
@@ -426,9 +423,9 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 
 						//process e3 only if e1 < e2
 						if (e1 < e2 && InCurr[e2]) {
-							edgeSupport[e3]++;
-							int supE3 = edgeSupport[e3];
-							// int supE3 = __sync_fetch_and_sub(&EdgeSupport[e3], 1);
+							/*int supE3 = edgeSupport[e3];
+							edgeSupport[e3]++;*/
+							int supE3 = __sync_fetch_and_sub(&edgeSupport[e3], 1);
 
 							if (supE3 == (level + 1)) {
 								buff[index] = e3;
@@ -437,23 +434,25 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 							}
 
 							if (supE3 <= level) {
-								edgeSupport[e3]++;
-								// __sync_fetch_and_add(&EdgeSupport[e3], 1);
+								//edgeSupport[e3]++;
+								__sync_fetch_and_add(&edgeSupport[e3], 1);
 							}
 
 							if (index >= BUFFER_SIZE) {
-								*nextTail += BUFFER_SIZE;
-								// long tempIdx = __sync_fetch_and_add(nextTail, BUFFER_SIZE);
-								long tempIdx = *nextTail;
+								long tempIdx = __sync_fetch_and_add(nextTail, BUFFER_SIZE);
+								/*long tempIdx = *nextTail;
+								*nextTail += BUFFER_SIZE;*/
+
 								for (long bufIdx = 0; bufIdx < BUFFER_SIZE; bufIdx++)
 									next[tempIdx + bufIdx] = buff[bufIdx];
 								index = 0;
 							}
 						}
 						if (!InCurr[e2]) { //if e2 is not in curr array then decrease support of e3 
-							// int supE3 = __sync_fetch_and_sub(&EdgeSupport[e3], 1);
-							edgeSupport[e3]++;
-							int supE3 = edgeSupport[e3];
+							int supE3 = __sync_fetch_and_sub(&edgeSupport[e3], 1);
+							/*int supE3 = edgeSupport[e3];
+							edgeSupport[e3]++;*/
+
 							if (supE3 == (level + 1)) {
 								buff[index] = e3;
 								InNext[e3] = true;
@@ -461,14 +460,15 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 							}
 
 							if (supE3 <= level) {
-								edgeSupport[e3]++;
-								// __sync_fetch_and_add(&EdgeSupport[e3], 1);
+								// edgeSupport[e3]++;
+								__sync_fetch_and_add(&edgeSupport[e3], 1);
 							}
 
 							if (index >= BUFFER_SIZE) {
-								*nextTail += BUFFER_SIZE;
-								long tempIdx = *nextTail;
-								//long tempIdx = __sync_fetch_and_add(nextTail, BUFFER_SIZE);
+								/*long tempIdx = *nextTail;
+								*nextTail += BUFFER_SIZE;*/
+
+								long tempIdx = __sync_fetch_and_add(nextTail, BUFFER_SIZE);
 
 								for (long bufIdx = 0; bufIdx < BUFFER_SIZE; bufIdx++)
 									next[tempIdx + bufIdx] = buff[bufIdx];
@@ -495,10 +495,10 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 
 
 	if (index > 0) {
-		*nextTail += index;
-		// long tempIdx = __sync_fetch_and_add(nextTail, BUFFER_SIZE);
-		long tempIdx = *nextTail;
-		// long tempIdx = __sync_fetch_and_add(nextTail, index);;
+		/*long tempIdx = *nextTail;
+		*nextTail += index;*/
+
+		long tempIdx = __sync_fetch_and_add(nextTail, index);;
 		for (long bufIdx = 0; bufIdx < index; bufIdx++)
 			next[tempIdx + bufIdx] = buff[bufIdx];
 	}
@@ -508,7 +508,6 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 #pragma omp for schedule(static)
 	for (long i = 0; i < currTail; i++) {
 		UI e = curr[i];
-
 		processed[e] = true;
 		InCurr[e] = false;
 	}
@@ -517,8 +516,6 @@ void figureSubLevel_intersection(Graph* g, UI* curr, bool* InCurr, long currTail
 
 
 }
-
-
 
 // 扫描度为level的边
 void scanLevel(long edgeNums, int* edgeSupport, int level, UI* curr, long* currTail, bool* inCurr) {
@@ -539,9 +536,10 @@ void scanLevel(long edgeNums, int* edgeSupport, int level, UI* curr, long* currT
 
 			if (index >= BUFFER_SIZE) {
 				// 使用原子操作 采用缓冲区 避免占用过大开销
-				// long tempIdx = __sync_fetch_and_add(currTail, BUFFER_SIZE);
-				*currTail += BUFFER_SIZE;
-				long tempIdx = *currTail;
+				long tempIdx = __sync_fetch_and_add(currTail, BUFFER_SIZE);
+				/*	long tempIdx = *currTail;
+					*currTail += BUFFER_SIZE;*/
+
 
 				for (long j = 0; j < BUFFER_SIZE; j++) {
 					curr[tempIdx + j] = buff[j];
@@ -552,13 +550,13 @@ void scanLevel(long edgeNums, int* edgeSupport, int level, UI* curr, long* currT
 	}
 
 	if (index > 0) {
-		// long tempIdx = __sync_fetch_and_add(currTail, index);
-		*currTail += index;
-		long tempIdx = (*currTail);
+		long tempIdx = __sync_fetch_and_add(currTail, index);
+		/*long tempIdx = (*currTail);
+		*currTail += index;*/
+
 
 		for (long j = 0; j < index; j++) {
 			curr[tempIdx + j] = buff[j];
-			cout << 'curr' << curr[tempIdx + j] << endl;
 		}
 	}
 	// free(buff);
@@ -598,7 +596,6 @@ void figurektruss(Graph* g, int* edgeSupport, Edge* els) {
 
 #pragma omp for schedule(static) 
 		for (UI e = 0; e < edgeNums; e++) {
-			//Initialize processed array with false
 			processed[e] = false;
 			InCurr[e] = false;
 			InNext[e] = false;
@@ -617,11 +614,11 @@ void figurektruss(Graph* g, int* edgeSupport, Edge* els) {
 			// 找到不小于他的点
 			startEdge[i] = j;
 		}
-		cout << "startEdge" << endl;
-		//TODO 临时输出变量start边
-		for (UI i = 0; i < nodeNums; i++) {
-			cout << startEdge[i] << endl;
-		}
+		//cout << "startEdge" << endl;
+		////TODO 临时输出变量start边
+		//for (UI i = 0; i < nodeNums; i++) {
+		//	cout << startEdge[i] << endl;
+		//}
 
 #pragma omp for schedule(dynamic,10) 
 		for (UI u = 0; u < nodeNums; u++) {
@@ -647,13 +644,13 @@ void figurektruss(Graph* g, int* edgeSupport, Edge* els) {
 						//<v,u> : g->eid[ j ]  
 						//<v,w> : g->eid[ k ]		
 						UI e1 = g->eid[X[w] - 1], e2 = g->eid[j], e3 = g->eid[k];
-						edgeSupport[e1]++;
-						edgeSupport[e2]++;
-						edgeSupport[e3]++;
-						// TODO Win10下为单核心
-						/*__sync_fetch_and_add(&EdgeSupport[e1], 1);
-						__sync_fetch_and_add(&EdgeSupport[e2], 1);
-						__sync_fetch_and_add(&EdgeSupport[e3], 1);*/
+						/*		edgeSupport[e1]++;
+								edgeSupport[e2]++;
+								edgeSupport[e3]++;*/
+								// TODO Win10下为单核心
+						__sync_fetch_and_add(&edgeSupport[e1], 1);
+						__sync_fetch_and_add(&edgeSupport[e2], 1);
+						__sync_fetch_and_add(&edgeSupport[e3], 1);
 					}
 				}
 			}
@@ -713,12 +710,12 @@ void figurektruss(Graph* g, int* edgeSupport, Edge* els) {
 
 #pragma endregion
 	//释放内存
-	/*free(next);
+	free(next);
 	free(InNext);
 	free(curr);
 	free(InCurr);
 	free(processed);
-	free(startEdge);*/
+	free(startEdge);
 }
 
 
@@ -726,10 +723,10 @@ void figurektruss(Graph* g, int* edgeSupport, Edge* els) {
 
 
 // 输出Kmax
-void display_kmaxtruss(int* edgeSupport, long numEdges) {
+void display_kmaxtruss(int* edgeSupport, long edgeNums) {
 	int maxSup = 0;
 
-	for (long i = 0; i < numEdges; i++) {
+	for (long i = 0; i < edgeNums; i++) {
 
 		if (maxSup < edgeSupport[i]) {
 			maxSup = edgeSupport[i];
@@ -738,7 +735,7 @@ void display_kmaxtruss(int* edgeSupport, long numEdges) {
 
 	long numEdgesWithMaxSup = 0;
 
-	for (long i = 0; i < numEdges; i++) {
+	for (long i = 0; i < edgeNums; i++) {
 		if (edgeSupport[i] == maxSup) {
 			numEdgesWithMaxSup++;
 		}
@@ -767,31 +764,22 @@ int main(int argc, char* argv[]) {
 	//计时
 	//double t0 = timer();
 
-	/************   Compute k - truss *****************************************/
 	//获取边列表
 	Edge* els = (Edge*)malloc((g.m / 2) * sizeof(Edge));
-	// assert(edgeIdToEdge != NULL);
 
-	// Populate the edge list array
+	//获取边list
 	getEidAndEdgeList(&g, els);
 
-	for (int i = 0; i < g.m / 2; i++)
-	{
-		cout << els[i].u << els[i].v << endl;
-	}
-
+	//边支持度
 	int* edgeSupport = (int*)calloc(g.m / 2, sizeof(int));
 
-	assert(edgeSupport != NULL);
-
-	//边支持度
 #pragma omp parallel for 
 	for (long i = 0; i < g.m / 2; i++) {
 		edgeSupport[i] = 0;
 	}
 
+	//计算ktruss
 	figurektruss(&g, edgeSupport, els);
-	// PKT_intersection(&g, EdgeSupport, edgeIdToEdge);
 
 	// 输出kmax
 	display_kmaxtruss(edgeSupport, g.m / 2);
@@ -803,8 +791,8 @@ int main(int argc, char* argv[]) {
 	/*if (edgeIdToEdge != NULL)
 		free(edgeIdToEdge);
 
-	if (EdgeSupport != NULL)
-		free(EdgeSupport);*/
+	if (edgeSupport != NULL)
+		free(edgeSupport);*/
 
 	return 0;
 }
