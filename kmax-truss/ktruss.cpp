@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <omp.h> 
 #include<time.h>
-// #include <sys/time.h>
+#include <sys/time.h>
 #include <functional>
 #include <iostream>
 #include <unordered_map>
@@ -20,7 +20,7 @@ typedef unsigned int UI;
 int ThreadNum = 1;
 
 // 图结构
-typedef struct {
+typedef struct Graph {
 	// 节点数量
 	long nodeNums;
 	// 总边数*2 
@@ -36,12 +36,18 @@ typedef struct {
 	vector<UI> vadj;
 	vector<UI> vnum_edges;
 	vector<UI> veid;
-} Graph;
+};
 
-// 边
+// 边结构体
 typedef struct Edge {
 	UI u, v;
 }El;
+
+static double timer() {
+	struct timeval tp;
+	gettimeofday(&tp, NULL);
+	return ((double)(tp.tv_sec) + tp.tv_usec * 1e-6);
+}
 
 // 设置线程数
 void setting_thread() {
@@ -79,12 +85,14 @@ void load_graph(Graph* g, char* path) {
 	long m = 0;
 	// fprintf(stdout, "Reading input file: %s\n", path);
 	//TODO 应该可以改另外种读取方式 计算最大边和最大顶点 figure应该只需要一边因为肯定最左边会出现一次
+	double t1 = timer();
 	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
 		//m++;
 		_max = figuremax(_max, u);
 		// 考虑建立邻接矩阵
 	}
 	fclose(infp);
+	fprintf(stdout, "ReadFirstFile took time: %.2lf sec \n", timer() - t1);
 
 	g->nodeNums = _max + 1;
 	// g->m = m;
@@ -109,9 +117,9 @@ void load_graph(Graph* g, char* path) {
 	//		Adj[i].clear();
 	//	}
 
-
 	infp = fopen(path, "r");
 	//读边
+	t1 = timer();
 	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
 		////避免重复			
 		//if (Adj[u].find(v) == Adj[u].end()) {
@@ -132,6 +140,7 @@ void load_graph(Graph* g, char* path) {
 
 	fclose(infp);
 	// 边问题一般不需要
+	fprintf(stdout, "ReadSecondFile took time: %.2lf sec \n", timer() - t1);
 
 	// m = 0;
 
@@ -171,7 +180,7 @@ void load_graph(Graph* g, char* path) {
 			g->adj[i] = 0;
 	}
 
-
+	t1 = timer();
 	infp = fopen(path, "r");
 	if (infp == NULL) {
 		fprintf(stderr, "Error: could not open input file: %s.\n Exiting ...\n", path);
@@ -203,7 +212,8 @@ void load_graph(Graph* g, char* path) {
 	}
 
 	fclose(infp);
-
+	fprintf(stdout, "ReadThirdFile took time: %.2lf sec \n", timer() - t1);
+	t1 = timer();
 	//TODO 测试可去 根据边排序排列 应该可以省略 对应文章的N 区间下的点对应的边 
 	for (long i = 0; i < g->nodeNums; i++) {
 		qsort(g->adj + g->num_edges[i], g->num_edges[i + 1] - g->num_edges[i], sizeof(UI), vid_compare);
@@ -212,6 +222,8 @@ void load_graph(Graph* g, char* path) {
 			g->vadj[j] = g->adj[j];
 		}*/
 	}
+	fprintf(stdout, "qsort took time: %.2lf sec \n", timer() - t1);
+
 	/*for (int i = 0; i < g->m; i++)
 	{
 		cout << g->adj[i] << endl;
@@ -644,10 +656,11 @@ void figurektruss(Graph* g, int* edgeSupport, Edge* els) {
 						//<v,u> : g->eid[ j ]  
 						//<v,w> : g->eid[ k ]		
 						UI e1 = g->eid[X[w] - 1], e2 = g->eid[j], e3 = g->eid[k];
+
+						// TODO Win10下为单核心
 						/*		edgeSupport[e1]++;
 								edgeSupport[e2]++;
 								edgeSupport[e3]++;*/
-								// TODO Win10下为单核心
 						__sync_fetch_and_add(&edgeSupport[e1], 1);
 						__sync_fetch_and_add(&edgeSupport[e2], 1);
 						__sync_fetch_and_add(&edgeSupport[e3], 1);
@@ -655,6 +668,7 @@ void figurektruss(Graph* g, int* edgeSupport, Edge* els) {
 				}
 			}
 
+			// 归0
 			for (UI j = startEdge[u]; j < g->num_edges[u + 1]; j++) {
 				UI w = g->adj[j];
 				X[w] = 0;
@@ -718,7 +732,6 @@ void figurektruss(Graph* g, int* edgeSupport, Edge* els) {
 	free(startEdge);
 }
 
-
 #pragma endregion
 
 
@@ -743,7 +756,6 @@ void display_kmaxtruss(int* edgeSupport, long edgeNums) {
 	printf("kmax = %d, Edges in kmax-truss = %ld.\n", maxSup + 2, numEdgesWithMaxSup);
 }
 
-
 int main(int argc, char* argv[]) {
 
 	// fprintf(stderr, "Start Successfully \n");
@@ -753,7 +765,6 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 	// printf("FileFullName-%s\n", argv[1]);
-	//char path[50] = "./example.txt";
 	// 读取线程数
 	setting_thread();
 	Graph g;
@@ -762,7 +773,7 @@ int main(int argc, char* argv[]) {
 	load_graph(&g, argv[2]);
 
 	//计时
-	//double t0 = timer();
+	double t0 = timer();
 
 	//获取边列表
 	Edge* els = (Edge*)malloc((g.m / 2) * sizeof(Edge));
@@ -783,7 +794,7 @@ int main(int argc, char* argv[]) {
 
 	// 输出kmax
 	display_kmaxtruss(edgeSupport, g.m / 2);
-	// fprintf(stdout, "Figure took time: %.2lf sec \n", timer() - t0);
+	fprintf(stdout, "Figure took time: %.2lf sec \n", timer() - t0);
 
 	//Free memory
 	// free_graph(&g);
