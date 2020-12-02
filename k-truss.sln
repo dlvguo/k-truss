@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "filetest", "filetest\filete
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kmax-truss", "kmax-truss\kmax-truss.vcxproj", "{329EDF70-13BB-4460-891E-EF9E4EB22D42}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FastReadFileTest", "FastReadFileTest\FastReadFileTest.vcxproj", "{39A8FFD6-F926-45F7-A323-EB3C6F832A2C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -61,6 +63,14 @@ Global
 		{329EDF70-13BB-4460-891E-EF9E4EB22D42}.Release|x64.Build.0 = Release|x64
 		{329EDF70-13BB-4460-891E-EF9E4EB22D42}.Release|x86.ActiveCfg = Release|Win32
 		{329EDF70-13BB-4460-891E-EF9E4EB22D42}.Release|x86.Build.0 = Release|Win32
+		{39A8FFD6-F926-45F7-A323-EB3C6F832A2C}.Debug|x64.ActiveCfg = Debug|x64
+		{39A8FFD6-F926-45F7-A323-EB3C6F832A2C}.Debug|x64.Build.0 = Debug|x64
+		{39A8FFD6-F926-45F7-A323-EB3C6F832A2C}.Debug|x86.ActiveCfg = Debug|Win32
+		{39A8FFD6-F926-45F7-A323-EB3C6F832A2C}.Debug|x86.Build.0 = Debug|Win32
+		{39A8FFD6-F926-45F7-A323-EB3C6F832A2C}.Release|x64.ActiveCfg = Release|x64
+		{39A8FFD6-F926-45F7-A323-EB3C6F832A2C}.Release|x64.Build.0 = Release|x64
+		{39A8FFD6-F926-45F7-A323-EB3C6F832A2C}.Release|x86.ActiveCfg = Release|Win32
+		{39A8FFD6-F926-45F7-A323-EB3C6F832A2C}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
