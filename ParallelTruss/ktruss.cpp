@@ -119,7 +119,7 @@ long figuremax(long a, long b) {
 }
 
 int load_graph_from_file(char* filename, graph_t* g) {
-	// double t0 = timer();
+	double t1 = timer();
 
 
 	FILE* infp = fopen(filename, "r");
@@ -138,6 +138,7 @@ int load_graph_from_file(char* filename, graph_t* g) {
 		_max = figuremax(_max, figuremax(u, v));
 	}
 	fclose(infp);
+	fprintf(stdout, "ReadFirstFile took time: %.2lf sec \n", timer() - t1);
 
 	g->n = _max + 1;
 	g->m = m;
@@ -161,6 +162,8 @@ int load_graph_from_file(char* filename, graph_t* g) {
 
 
 	infp = fopen(filename, "r");
+	t1 = timer();
+
 	//读边
 	while (fscanf(infp, "%u %u %u\n", &u, &v, &t) != EOF) {
 		////避免重复			
@@ -177,6 +180,7 @@ int load_graph_from_file(char* filename, graph_t* g) {
 	}
 
 	fclose(infp);
+	fprintf(stdout, "ReadSecondFile took time: %.2lf sec \n", timer() - t1);
 
 	if (m != g->m) {
 		printf("Reading error: file does not contain %ld edges.\n", g->m);
@@ -216,7 +220,7 @@ int load_graph_from_file(char* filename, graph_t* g) {
 			g->adj[i] = 0;
 	}
 
-
+	t1 = timer();
 	infp = fopen(filename, "r");
 	if (infp == NULL) {
 		fprintf(stderr, "Error: could not open input file: %s.\n Exiting ...\n", filename);
@@ -240,14 +244,16 @@ int load_graph_from_file(char* filename, graph_t* g) {
 		}
 		//}
 	}
+	fprintf(stdout, "ReadThirdFile took time: %.2lf sec \n", timer() - t1);
 
 	fclose(infp);
+	t1 = timer();
 
 	//Sort the adjacency lists
 	for (long i = 0; i < g->n; i++) {
 		qsort(g->adj + g->num_edges[i], g->num_edges[i + 1] - g->num_edges[i], sizeof(vid_t), vid_compare);
 	}
-
+	fprintf(stdout, "qsort took time: %.2lf sec \n", timer() - t1);
 	// fprintf(stdout, "Reading input file took time: %.2lf sec \n", timer() - t0);
 	free(temp_num_edges);
 	return 0;
@@ -2212,7 +2218,7 @@ int main(int argc, char* argv[]) {
 	load_graph_from_file(argv[2], &g);
 
 	//计时
-	//double t0 = timer();
+	double t0 = timer();
 
 	/************   Compute k - truss *****************************************/
 	//edge list array
@@ -2235,7 +2241,7 @@ int main(int argc, char* argv[]) {
 	// 输出结果
 	display_stats(EdgeSupport, g.m / 2);
 
-	// fprintf(stdout, "Figure took time: %.2lf sec \n", timer() - t0);
+	fprintf(stdout, "Figure took time: %.2lf sec \n", timer() - t0);
 
 	//Free memory
 	free_graph(&g);
