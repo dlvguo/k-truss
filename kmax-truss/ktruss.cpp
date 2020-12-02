@@ -506,7 +506,6 @@ void figurektruss(Graph* g, int* edgeSupport, Edge* els) {
 // Êä³öKmax
 void display_kmaxtruss(int* edgeSupport, long edgeNums) {
 	int maxSup = 0;
-
 	for (long i = 0; i < edgeNums; i++) {
 
 		if (maxSup < edgeSupport[i]) {
